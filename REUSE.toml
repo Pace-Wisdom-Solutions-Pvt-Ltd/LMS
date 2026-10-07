@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Copyright and license information for files that cannot carry an SPDX
-# header comment (Markdown, JSON, lock files, HTML, images).
+# header comment (Markdown, JSON, ARB, lock files, HTML, images) or that a
+# tool regenerates (Flutter plugin registrants).
 # Source files carry their own header; see CONTRIBUTING.md.
 # Docs: https://reuse.software/spec-3.3/#reusetoml
 
@@ -12,21 +13,48 @@ version = 1
 path = [
     "**/*.md",
     "**/*.json",
+    "**/*.arb",
     "poetry.lock",
+    "student_mobile_app/pubspec.lock",
     "NOTICE",
     "frontend/index.html",
     ".reuse/templates/**",
+    # Rewritten by `flutter pub get`, which would drop a header.
+    "student_mobile_app/linux/flutter/generated_plugin_registrant.*",
+    "student_mobile_app/linux/flutter/generated_plugins.cmake",
+    "student_mobile_app/windows/flutter/generated_plugin_registrant.*",
+    "student_mobile_app/windows/flutter/generated_plugins.cmake",
+    "student_mobile_app/macos/Flutter/GeneratedPluginRegistrant.swift",
 ]
 SPDX-FileCopyrightText = "2026 Pace Wisdom Solutions Pvt. Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
 # The Pace Wisdom logos are trademarks of Pace Wisdom Solutions Pvt. Ltd. and
 # are not licensed under Apache-2.0 (see section 6 of the license).
+# The mobile launcher icons are generated from assets/app_logo.png by
+# flutter_launcher_icons (see student_mobile_app/pubspec.yaml).
 [[annotations]]
 path = [
     "frontend/public/just-logo.png",
     "frontend/public/logo.png",
     "frontend/src/assets/pws_logo_new_text.png",
+    "student_mobile_app/assets/app_logo.png",
+    "student_mobile_app/android/app/src/main/res/drawable-*/ic_launcher_foreground.png",
+    "student_mobile_app/android/app/src/main/res/mipmap-*/ic_launcher.png",
+    "student_mobile_app/ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png",
 ]
 SPDX-FileCopyrightText = "2026 Pace Wisdom Solutions Pvt. Ltd."
 SPDX-License-Identifier = "LicenseRef-PaceWisdom-Trademark"
+
+# Unmodified images from the `flutter create` template: the Flutter logo
+# icons for web, macOS and Windows, and the blank iOS launch image.
+[[annotations]]
+path = [
+    "student_mobile_app/web/favicon.png",
+    "student_mobile_app/web/icons/*.png",
+    "student_mobile_app/macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png",
+    "student_mobile_app/windows/runner/resources/app_icon.ico",
+    "student_mobile_app/ios/Runner/Assets.xcassets/LaunchImage.imageset/*.png",
+]
+SPDX-FileCopyrightText = "2014 The Flutter Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
