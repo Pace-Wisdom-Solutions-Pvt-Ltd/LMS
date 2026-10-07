@@ -1,0 +1,119 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+# ============================================================
+# Environment / Secrets
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+venv/
+env/
+.venv/
+
+# Project-specific local folders
+lms-new/
+
+
+# ============================================================
+# IDEs / Editors
+# ============================================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+*.ipr
+*.iws
+.jetbrains/
+.atom/
+
+.python-version
+.DS_Store
+
+
+# ============================================================
+# Python / Django
+# ============================================================
+*.pyc
+*.pyo
+*.log
+*.pot
+*.class
+__pycache__/
+local_settings.py
+
+db.sqlite3
+db.sqlite3-journal
+
+media/
+
+coverage.xml
+.coverage
+
+.ruff_cache/
+
+
+# ============================================================
+# Flutter / Dart
+# ============================================================
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+build/
+**/build/
+
+coverage/
+
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+*.swp
+
+# Flutter obfuscation / symbolication
+app.*.symbols
+app.*.map.json
+
+# Android build artifacts
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+
+# Widget Preview
+.widget_preview/
+
+
+# ============================================================
+# Flutter / iOS / Android
+# ============================================================
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+
+# ============================================================
+# Agents / AI tools
+# ============================================================
+.agents/
+skills-lock.json
+
+
+# ============================================================
+# Internal CI / Development configs
+# ============================================================
+.gitlab-ci.yml
+sonar-project.properties
+
+
+# ============================================================
+# Scratch / Temporary files
+# ============================================================
+scratch/
+*.xlsx
