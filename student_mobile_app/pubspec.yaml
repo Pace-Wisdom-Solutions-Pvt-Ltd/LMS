@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: lms
+description: "Learner-only Android and iOS client for a multi-tenant, white-label corporate LMS."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_localizations:
+    sdk: flutter
+
+  intl: ^0.20.3
+  provider: ^6.1.5+1
+  go_router: ^18.0.1
+  dio: ^5.11.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_dotenv: ^6.0.1
+  responsive_sizer: ^3.3.1
+  animations: ^3.0.0
+  shimmer: ^4.0.0
+  flutter_svg: ^2.3.0
+  cached_network_image: ^4.0.2
+  characters: ^1.4.1
+  url_launcher: ^6.3.2
+  file_picker: ^13.1.0
+  youtube_player_iframe: ^6.0.2
+  share_plus: ^13.3.0
+  path_provider: ^2.1.6
+  open_filex: ^4.7.0
+  flutter_file_dialog: ^3.3.3
+  internet_connection_checker: ^3.0.1
+  package_info_plus: ^10.2.1
+  video_player: ^2.14.0
+  chewie: ^1.17.2
+  readmore: ^3.0.0
+  
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Launcher icons for both platforms, generated from the one logo asset:
+#   dart run flutter_launcher_icons
+# Re-run it whenever assets/app_logo.png changes.
+flutter_launcher_icons:
+  image_path: "assets/app_logo.png"
+  android: "ic_launcher"
+  # Android 8+ draws the adaptive layers; the background is flat white so a
+  # logo with its own padding is not cropped by the system mask.
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/app_logo.png"
+  min_sdk_android: 21
+  ios: true
+  # iOS rejects an alpha channel in the app icon, so it is flattened onto white.
+  remove_alpha_ios: true
+
+# The following section is specific to Flutter packages.
+flutter:
+  uses-material-design: true
+
+  # Generates AppLocalizations from lib/l10n/*.arb (see l10n.yaml).
+  generate: true
+
+  assets:
+    - .env
+    - assets/

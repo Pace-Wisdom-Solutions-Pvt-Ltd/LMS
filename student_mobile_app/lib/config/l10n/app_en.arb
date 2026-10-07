@@ -1,0 +1,487 @@
+{
+  "@@locale": "en",
+  "appName": "LMS",
+  "@appName": {
+    "description": "The product name. An organization's own name replaces it on branded surfaces at runtime."
+  },
+  "appTagline": "Learn at your pace.",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "continueLabel": "Continue",
+  "noInternet": "No internet connection.",
+  "@noInternet": {
+    "description": "Bar pinned to the bottom of the app while the internet is unreachable. The app is online-only, so this states the fact rather than promising saved data."
+  },
+  "signInOverline": "LMS for learners",
+  "signInTitle": "Welcome back.\nKeep learning.",
+  "signInFootnote": "This app is for learners. Trainers and admins sign in on the LMS website.",
+  "emailLabel": "Email",
+  "emailHint": "you@company.com",
+  "@emailHint": {
+    "description": "Placeholder shown in the empty email field, so the learner can see the expected format."
+  },
+  "passwordLabel": "Password",
+  "passwordHint": "Your LMS password",
+  "signInCta": "Sign in",
+  "forgotPassword": "Forgot password?",
+  "emailRequired": "Enter your email.",
+  "emailInvalid": "Enter a valid email address.",
+  "passwordRequired": "Enter your password.",
+  "signInFailed": "We couldn't sign you in. Please try again.",
+  "forgotPasswordSent": "If that email has an account, a reset link is on its way.",
+  "forgotPasswordTitle": "Forgot password",
+  "forgotPasswordBody": "Enter the email you sign in with and we'll send a link to set a new password.",
+  "forgotPasswordCta": "Send reset link",
+  "forgotPasswordSentTitle": "Check your email",
+  "forgotPasswordSentBody": "If that email has an account, a link to set a new password is on its way. The link opens on the LMS website.",
+  "backToSignIn": "Back to sign in",
+  "resetPasswordTitle": "Set a new password",
+  "resetPasswordBody": "Choose a password for your account. You'll sign in with it on the next screen.",
+  "resetPasswordCta": "Set password",
+  "resetTokenMissing": "This link is incomplete. Open the link from your email again.",
+  "resetTokenInvalid": "This link has expired or has already been used. Ask for a new one.",
+  "resetPasswordDone": "Password set. Sign in with your new password.",
+  "signingOut": "Signing out\u2026",
+  "switchingOrg": "Switching organization\u2026",
+  "chooseOrgTitle": "Choose an organization",
+  "chooseOrgBody": "You belong to more than one organization. Pick the one you want to open.",
+  "switchOrg": "Switch organization",
+  "tabHome": "Home",
+  "tabCourses": "Courses",
+  "tabProgress": "Progress",
+  "tabProfile": "Profile",
+  "homeOrgOverline": "Your organization",
+  "signOut": "Sign out",
+  "themeMode": "Appearance",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "greeting": "Hi, {name}",
+  "@greeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "screenNotBuiltTitle": "Not built yet",
+  "screenNotBuiltBody": "This screen arrives in a later phase.",
+  "done": "Done",
+  "video": "Video",
+  "homeNoCoursesTitle": "No courses yet",
+  "homeNoCoursesBody": "When a trainer assigns you to a batch, its courses appear here.",
+  "homeStatCourses": "Courses",
+  "homeOverallTitle": "Overall Progress",
+  "homeOverallSubtitle": "Completion across all courses",
+  "homeCourseProgressTitle": "Course Progress",
+  "homeCourseProgressSubtitle": "Completion by course",
+  "homeCourseStatusTitle": "Course Status",
+  "homeCourseStatusSubtitle": "How your courses are progressing",
+  "homeOverallEmptyTitle": "Nothing to measure yet",
+  "homeOverallEmptyBody": "Your overall completion appears once you have a course.",
+  "homeCourseProgressEmptyTitle": "No progress to show yet",
+  "homeCourseProgressEmptyBody": "Courses assigned to your batch will show up here.",
+  "homeCourseStatusEmptyTitle": "No courses to chart yet",
+  "homeCourseStatusEmptyBody": "Completed, in progress and not started appear here.",
+  "homeGlanceTitle": "At a Glance",
+  "homeGlanceSubtitle": "Key learning stats",
+  "homeStatEnrolled": "Enrolled courses",
+  "homeStatLearningHours": "Learning hours",
+  "homeStatUpcoming": "Upcoming",
+  "homeStatPoints": "Points",
+  "homeStatComplete": "Complete",
+  "coursesTitle": "My Courses",
+  "@coursesTitle": {
+    "description": "Screen title. The tab itself stays the shorter \"Courses\"."
+  },
+  "coursesSearchHint": "Course, batch or topic",
+  "courseDue": "Due {date}",
+  "@courseDue": {
+    "description": "Badge on a course card carrying its completion deadline.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "coursesEmptyTitle": "No courses yet",
+  "coursesEmptyBody": "Courses assigned to your batch will show up here.",
+  "coursesNoMatchTitle": "Nothing matches",
+  "coursesNoMatchBody": "Try a different search or filter.",
+  "filterAll": "All",
+  "filterInProgress": "In progress",
+  "filterNotStarted": "Not started",
+  "filterCompleted": "Completed",
+  "kindQuiz": "Quiz",
+  "kindTask": "Task",
+  "kindCoding": "Coding",
+  "claimCertificate": "Claim your certificate",
+  "certificateReadyTitle": "Certificate ready",
+  "certificateReadyBody": "Your certificate has been issued. Find it under Progress.",
+  "certificateNotReadyTitle": "Not ready yet",
+  "lessonLockedTitle": "Lesson locked",
+  "lessonLockedGeneric": "Finish the earlier lessons to unlock this one.",
+  "backToRoadmap": "Back to the course",
+  "readMore": "Read more",
+  "readLess": "Read less",
+  "videoPlay": "Play video",
+  "moduleLocked": "Finish the earlier modules to unlock this one.",
+  "moduleEmpty": "No lessons have been added to this module yet.",
+  "focusAreas": "Focus areas",
+  "quickOutline": "Quick outline",
+  "viewDocument": "View document",
+  "markCompleteAction": "Mark as completed",
+  "nodeDone": "Completed",
+  "nodeUpdating": "Updating this lesson",
+  "nodesDone": "{done}/{total} done",
+  "@nodesDone": {
+    "description": "Chip at the top of the roadmap, e.g. 3/6 done.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "moduleHeader": "Module {number} · {count, plural, =1{1 lesson} other{{count} lessons}}",
+  "@moduleHeader": {
+    "description": "Overline above a module, e.g. MODULE 1 · 2 LESSONS. Rendered uppercase.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quizMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
+  "@quizMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openTaskPage": "Open task",
+  "viewTaskPage": "View task",
+  "kindAssessment": "Assessment",
+  "nodeAssessmentUnavailable": "This assessment cannot be taken in the app. Open it on the LMS website.",
+  "openCoding": "Open coding exercise",
+  "codingTitle": "Coding practice",
+  "codingProblems": "{count, plural, =1{1 problem} other{{count} problems}}",
+  "@codingProblems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "codingProblemOf": "Problem {index} of {count}",
+  "@codingProblemOf": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "codingOpenAction": "Start coding",
+  "codingContinueAction": "Continue coding",
+  "codingNoProblems": "There are no coding problems on this lesson yet.",
+  "codingSolved": "Solved",
+  "codingStatement": "Problem",
+  "codingInputFormat": "Input format",
+  "codingOutputFormat": "Output format",
+  "codingSamples": "Sample cases",
+  "codingCase": "Case {index}",
+  "@codingCase": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "codingSampleInput": "Input",
+  "codingSampleOutput": "Expected output",
+  "codingYourOutput": "Your output",
+  "codingOutput": "Output",
+  "codingLanguage": "Language",
+  "codingEditorLabel": "Your solution",
+  "codingEditorHint": "Write your solution here",
+  "codingCustomInput": "Run with my own input",
+  "codingCustomInputHint": "Input to run against instead of the samples",
+  "codingRun": "Run",
+  "codingRunning": "Running…",
+  "codingSubmit": "Submit",
+  "codingGrading": "Grading…",
+  "codingRunNotGraded": "A run is not graded. Submit when you are happy with it.",
+  "codingWriteCodeFirst": "Write some code first.",
+  "codingTimeLimit": "{count}s per case",
+  "@codingTimeLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "codingMemoryLimit": "{count} MB",
+  "@codingMemoryLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "codingAccepted": "Accepted",
+  "codingNotAccepted": "Not accepted",
+  "codingCasesPassed": "{passed} of {total} cases passed",
+  "@codingCasesPassed": {
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "codingStillGrading": "Still being graded. Open this again in a moment to see the result.",
+  "codingScore": "Score {score}",
+  "@codingScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "codingCasePassed": "Passed",
+  "codingCaseFailed": "Failed",
+  "codingError": "Error",
+  "codingAcceptedToast": "Accepted \u00b7 lesson complete",
+  "codingAllSolved": "Every problem on this lesson is solved.",
+  "codingStarterLoading": "Loading starter code\u2026",
+  "nothingToOpen": "There is nothing to open in this lesson yet.",
+  "openTask": "Open task",
+  "startQuiz": "Start quiz",
+  "openDocument": "Open document",
+  "openLink": "Open link",
+  "autoCompleteNote": "This lesson completes itself once you reach the end.",
+  "markComplete": "Mark as complete",
+  "lessonCompleted": "Lesson complete",
+  "quizSubmit": "Submit quiz",
+  "quizNext": "Next",
+  "quizPrevious": "Previous",
+  "quizSubmitConfirmTitle": "Submit this quiz?",
+  "quizSubmitConfirmBody": "Your answers are final once you submit.",
+  "quizConfirmSubmit": "Yes, submit",
+  "quizTimeUp": "Time is up. Your answers were submitted.",
+  "quizTimeUpUnanswered": "Time is up. Nothing was answered, so no attempt was recorded.",
+  "quizQuestionGrid": "Questions",
+  "quizEmptyTitle": "This quiz has no questions yet",
+  "quizPassed": "Passed",
+  "quizFailed": "Not passed",
+  "quizMustPass": "You need to pass this quiz before the next lesson unlocks.",
+  "quizYourAnswers": "Your answers",
+  "quizNotAnswered": "You did not answer this question.",
+  "taskScreenTitle": "Task submission",
+  "taskLinkLabel": "Submission link",
+  "taskLinkHint": "https://github.com/... or a Drive link",
+  "taskLinkHelp": "Paste a public GitHub, Drive, or hosted link to your solution.",
+  "taskParagraphLabel": "Written answer",
+  "taskParagraphHint": "Write your answer here...",
+  "taskAttachmentLabel": "Task brief",
+  "taskOpenAttachment": "Open the attached file",
+  "taskCodeLabel": "Code",
+  "taskCodeHint": "// Paste your code here...",
+  "taskFileLabel": "PDF / Screenshot / File",
+  "taskUploadCta": "Click to upload",
+  "taskOr": "OR",
+  "taskSubmit": "Upload submission",
+  "taskResubmitCta": "Re-upload submission",
+  "taskHistoryTitle": "Submission history",
+  "taskUnderReviewTitle": "Under review",
+  "taskUnderReviewBody": "Your trainer has your work. You will see their feedback here.",
+  "taskAttempt": "#{number}",
+  "@taskAttempt": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "taskSubmittedWork": "What you submitted",
+  "taskViewFile": "View file",
+  "taskWorkLink": "Link",
+  "taskWorkAnswer": "Answer",
+  "taskWorkCode": "Code",
+  "taskWorkFile": "File",
+  "taskCancel": "Cancel",
+  "taskSubmitted": "Submitted for review.",
+  "taskStatusPending": "Pending",
+  "taskStatusApproved": "Approved",
+  "taskStatusRejected": "Rejected",
+  "taskFeedback": "Trainer feedback",
+  "taskScore": "awarded",
+  "taskResubmit": "Re-submit",
+  "viewResult": "View result",
+  "attemptsLeftLabel": "Attempts left",
+  "progressTitle": "My Learning Progress",
+  "progressSubtitle": "Overall completion, course-wise breakdown and your earned certificates",
+  "progressOverallTitle": "Overall Progress",
+  "progressBreakdownTitle": "Course-wise Breakdown",
+  "progressLessonsDone": "Lessons",
+  "progressCertificates": "Certificates",
+  "progressEmptyTitle": "No progress to show yet",
+  "progressEmptyBody": "Courses assigned to your batch will show up here.",
+  "certificatesTitle": "My Certificates",
+  "certificatesSubtitle": "Your earned certificates, organised by type",
+  "certificatesEmptyTitle": "No course certificates yet",
+  "certificatesEmptyBody": "Complete a course to earn your first certificate and showcase your achievement!",
+  "view": "View",
+  "certificateDownloadFailed": "Could not download that certificate.",
+  "reopenFromCourseTitle": "Open this from the course",
+  "reopenFromCourseBody": "This screen needs to be opened from its lesson.",
+  "percentComplete": "{percent}% complete",
+  "@percentComplete": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonsDone": "{done} of {total} lessons done",
+  "@lessonsDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonLockedBy": "Finish “{title}” first.",
+  "@lessonLockedBy": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "questionOf": "Question {current} of {total}",
+  "@questionOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "quizScored": "Scored {percent}%",
+  "@quizScored": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "quizNoAttempt": "There is no recorded attempt for this quiz yet.",
+  "quizScoreCaption": "{correct} of {total} correct",
+  "@quizScoreCaption": {
+    "placeholders": {
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptsLeft": "{count, plural, =0{No attempts left} =1{1 attempt left} other{{count} attempts left}}",
+  "@attemptsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rulesQuestions": "{count} questions",
+  "@rulesQuestions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signOutConfirm": "You'll need to sign in again to keep learning on this device.",
+  "videoOpenExternally": "Open the video",
+  "videoPlaybackSpeed": "Playback speed",
+  "open": "Open",
+  "download": "Download",
+  "share": "Share",
+  "certificateShareText": "My certificate for {course}",
+  "@certificateShareText": {
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "certificateSaved": "Certificate saved to your device.",
+  "certificateSavedInApp": "Certificate downloaded. Use Share to save or send it.",
+  "save": "Save",
+  "profileLoadFailed": "Could not load your profile.",
+  "editProfile": "Edit profile",
+  "profileRoles": "Your access",
+  "profileOrganization": "Organization",
+  "profileSettings": "Settings",
+  "profileContact": "Contact",
+  "appVersion": "v{version}",
+  "@appVersion": {
+    "description": "Printed under Sign out, e.g. v1.0.0.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "profileSaved": "Profile updated.",
+  "profileUnavailable": "Profile unavailable",
+  "profilePhoto": "Profile photo",
+  "photoChoose": "Choose a photo",
+  "photoRemove": "Remove selected photo",
+  "firstName": "First name",
+  "firstNameHint": "Your given name",
+  "firstNameRequired": "Enter your first name.",
+  "lastName": "Last name",
+  "lastNameHint": "Your family name",
+  "phoneNumber": "Phone",
+  "phoneHint": "9876543210",
+  "phoneInvalid": "Enter a valid phone number.",
+  "changePassword": "Change password",
+  "changePasswordBody": "You'll be signed out everywhere and will need to sign in again with the new password.",
+  "currentPassword": "Current password",
+  "currentPasswordHint": "The password you use now",
+  "newPassword": "New password",
+  "newPasswordHint": "At least 8 characters",
+  "confirmPassword": "Confirm new password",
+  "confirmPasswordHint": "Type the new password again",
+  "passwordsDoNotMatch": "These passwords don't match.",
+  "passwordSameAsCurrent": "Choose a password different from your current one.",
+  "passwordChangedDone": "Password changed. Sign in with your new password.",
+  "passwordTooShort": "Use at least {count} characters.",
+  "@passwordTooShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

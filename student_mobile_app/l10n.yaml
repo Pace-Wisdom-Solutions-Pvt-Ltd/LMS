@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+arb-dir: lib/config/l10n
+template-arb-file: app_en.arb
+output-dir: lib/config/l10n/app_localizations
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+
+# `flutter gen-l10n` rewrites app_localizations/ from scratch, so the notice
+# cannot live in those files — it is prepended on every run from here.
+header: |-
+  // SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+  // SPDX-License-Identifier: Apache-2.0

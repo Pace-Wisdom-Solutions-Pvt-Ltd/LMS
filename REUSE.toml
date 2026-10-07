@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+# Copyright and license information for files that cannot carry an SPDX
+# header comment (Markdown, JSON, lock files, HTML, images).
+# Source files carry their own header; see CONTRIBUTING.md.
+# Docs: https://reuse.software/spec-3.3/#reusetoml
+
+version = 1
+
+[[annotations]]
+path = [
+    "**/*.md",
+    "**/*.json",
+    "poetry.lock",
+    "NOTICE",
+    "frontend/index.html",
+    ".reuse/templates/**",
+]
+SPDX-FileCopyrightText = "2026 Pace Wisdom Solutions Pvt. Ltd."
+SPDX-License-Identifier = "Apache-2.0"
+
+# The Pace Wisdom logos are trademarks of Pace Wisdom Solutions Pvt. Ltd. and
+# are not licensed under Apache-2.0 (see section 6 of the license).
+[[annotations]]
+path = [
+    "frontend/public/just-logo.png",
+    "frontend/public/logo.png",
+    "frontend/src/assets/pws_logo_new_text.png",
+]
+SPDX-FileCopyrightText = "2026 Pace Wisdom Solutions Pvt. Ltd."
+SPDX-License-Identifier = "LicenseRef-PaceWisdom-Trademark"

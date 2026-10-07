@@ -1,0 +1,151 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+# Development stack: Postgres + Redis + Django + Celery + Vite, with hot reload.
+#
+#   docker compose up --build
+#
+# Source directories are bind-mounted, so edits on the host reload in the
+# container — no rebuild needed unless dependencies change.
+#
+# Host ports are configurable because 8000/5432/6379 are often already taken by
+# local services. Override in a .env file next to this one, or inline:
+#   BACKEND_PORT=9000 docker compose up
+#
+# Postgres and Redis are deliberately NOT published to the host. The containers
+# reach them over the compose network, so they cannot collide with a local
+# Postgres or Redis you already run.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-lms_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # The -U must match POSTGRES_USER or the check passes against the wrong role.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-lms_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Wait for the DB to accept connections, then migrate before serving.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-key-do-not-use-in-production}
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+
+      # DB_HOST is the service name, not localhost — that's the container itself.
+      DB_NAME: ${DB_NAME:-lms_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: django-db
+
+      # Used for CORS_ALLOWED_ORIGINS and links in outgoing email.
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-5173}
+      BACKEND_PUBLIC_URL: http://localhost:${BACKEND_PORT:-8010}
+
+      # Emails print to the container log instead of being sent.
+      EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      DEFAULT_FROM_EMAIL: no-reply@example.com
+
+      # Uploads go to the container filesystem, not S3.
+      USE_S3: "False"
+    volumes:
+      # Live source. Overlays the image's copy so edits reload immediately.
+      - .:/app
+      # Keeps container-written uploads out of the host tree.
+      - media_data:/app/media
+    ports:
+      - "${BACKEND_PORT:-8010}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A lms_core worker -l info
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-key-do-not-use-in-production}
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+      DB_NAME: ${DB_NAME:-lms_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: django-db
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-5173}
+      EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      USE_S3: "False"
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      # Baked into the browser bundle, so it must be a URL the BROWSER can reach
+      # — hence localhost and the published port, not the "backend" service name.
+      # The /api suffix matches where lms_core/urls.py mounts the API.
+      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8010}/api
+      # Bind-mounted source on macOS/Windows needs polling for file watching.
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume keeps the image's node_modules (built for Alpine/Linux)
+      # from being shadowed by a host node_modules built for macOS.
+      - /app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

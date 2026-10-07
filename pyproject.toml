@@ -1,0 +1,87 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+[tool.poetry]
+name = "lms-open-source"
+version = "0.1.0"
+description = "Multi-tenant Learning Management System with a Django REST Framework backend and a React frontend."
+authors = ["Open Source Contributors"]
+license = "Apache-2.0"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.13,<3.14"
+django = ">=6.0.2,<7.0.0"
+djangorestframework = ">=3.16.1,<4.0.0"
+djangorestframework-simplejwt = ">=5.5.1,<6.0.0"
+drf-spectacular = ">=0.29.0,<0.30.0"
+psycopg2-binary = ">=2.9.11,<3.0.0"
+django-environ = ">=0.13.0,<0.14.0"
+pyjwt = ">=2.11.0,<3.0.0"
+django-cors-headers = ">=4.9.0,<5.0.0"
+redis = ">=7.2.1,<8.0.0"
+django-redis = ">=6.0.0,<7.0.0"
+celery = ">=5.6.2,<6.0.0"
+pandas = "^3.0.1"
+openpyxl = "^3.1.5"
+xlrd = "^2.0.1"
+django-storages = {extras = ["s3"], version = "^1.14.6"}
+boto3 = "^1.42.90"
+requests = "^2.33.1"
+gunicorn = ">=21.0"
+django-celery-results = "^2.6.0"
+pillow = "^11.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=9.0.2,<10.0.0"
+pytest-cov = ">=7.0.0,<8.0.0"
+pytest-django = ">=4.12.0,<5.0.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "lms_core.settings"
+addopts = "--cov=. --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml:coverage.xml"
+
+[tool.coverage.run]
+relative_files = true
+source = ["."]
+omit = [
+    "**/migrations/**",
+    "**/tests.py",
+    "**/tasks.py",
+    "**/settings.py",
+    "**/celery.py",
+    "manage.py",
+    "lms_core/asgi.py",
+    "lms_core/wsgi.py",
+    "scratch/**",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.coverage.report]
+omit = [
+    "**/migrations/**",
+    "**/tests.py",
+    "**/tasks.py",
+    "**/settings.py",
+    "**/celery.py",
+    "manage.py",
+    "lms_core/asgi.py",
+    "lms_core/wsgi.py",
+    "scratch/**",
+]
+
+[tool.ruff]
+target-version = "py313"
+extend-exclude = ["frontend", "venv"]
+
+[tool.ruff.lint]
+# CI blocks on these: syntax errors, undefined names, and other mistakes that
+# break at runtime. Widen to ruff's default set (E4, E7, E9, F) once the
+# existing unused-import and import-order findings have been cleaned up.
+select = ["E9", "F63", "F7", "F82"]

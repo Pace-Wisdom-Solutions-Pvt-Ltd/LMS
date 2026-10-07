@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+# Core
+django>=6.0.2,<7.0.0
+djangorestframework>=3.16.1,<4.0.0
+djangorestframework-simplejwt>=5.5.1,<6.0.0
+drf-spectacular>=0.29.0,<0.30.0
+django-cors-headers>=4.9.0,<5.0.0
+django-environ>=0.13.0,<0.14.0
+pyjwt>=2.11.0,<3.0.0
+
+# Database
+psycopg2-binary>=2.9.11,<3.0.0
+
+# Caching & Tasks
+redis>=7.2.1,<8.0.0
+django-redis>=6.0.0,<7.0.0
+celery[redis]>=5.3,<6.0.0
+django-celery-results>=2.6.0
+
+# Web Server
+gunicorn>=21.0
+
+# Storage
+django-storages[s3]>=1.14.6
+boto3>=1.42.90
+
+# Files & Data
+pandas>=3.0.1
+openpyxl>=3.1.5
+xlrd>=2.0.1
+
+# Images (required by ImageField on User.profile_picture,
+# Course.thumbnail and Organization.logo)
+Pillow>=11.0.0
+
+# HTTP
+requests>=2.33.1
+
+# Celery Monitoring
+flower>=2.0.0

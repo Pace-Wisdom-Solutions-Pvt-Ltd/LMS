@@ -1,0 +1,227 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+@import "tailwindcss";
+
+/* Refined green theme – professional, trustworthy, modern */
+@theme {
+  --color-brand-green: #059669;
+  --color-brand-teal: #0d9488;
+  --color-brand-green-light: #d1fae5;
+  --color-brand-teal-light: #ccfbf1;
+  --color-brand-lavender: #8b5cf6;
+  --color-brand-orange: #ea580c;
+  --color-brand-blue: #2563eb;
+  --color-brand-turquoise: #0d9488;
+}
+
+/* Hide browser-native password reveal buttons (Edge/IE/Chrome) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100vh;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom thin scrollbars – applies to all overflow scroll areas */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  *::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /* Global cursor: pointer for all interactive elements */
+  button,
+  a,
+  select,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  label[for] {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.35s ease-out forwards;
+  }
+  .animate-slide-down {
+    animation: slide-down 0.25s ease-out forwards;
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.28s ease-out forwards;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Code Editor — VS Code "Dark+" inspired Prism theme
+   Applied via react-simple-code-editor inside .code-editor-host
+   ────────────────────────────────────────────────────────── */
+.code-editor-host .code-editor-textarea,
+.code-editor-host .code-editor-pre {
+  font-family: "Fira Code", "Consolas", "Courier New", monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5rem !important;
+  tab-size: 4;
+  white-space: pre !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.code-editor-host .code-editor-textarea {
+  outline: none !important;
+  caret-color: #ffffff !important;
+}
+
+.code-editor-host .code-editor-pre {
+  color: #d4d4d4;
+}
+
+/* Token colors — VS Code Dark+ palette */
+.code-editor-host .token.comment,
+.code-editor-host .token.prolog,
+.code-editor-host .token.cdata {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.code-editor-host .token.doctype,
+.code-editor-host .token.punctuation {
+  color: #d4d4d4;
+}
+
+.code-editor-host .token.keyword,
+.code-editor-host .token.boolean,
+.code-editor-host .token.null,
+.code-editor-host .token.important,
+.code-editor-host .token.atrule {
+  color: #569cd6;
+}
+
+.code-editor-host .token.builtin,
+.code-editor-host .token.class-name,
+.code-editor-host .token.type-class-name {
+  color: #4ec9b0;
+}
+
+.code-editor-host .token.string,
+.code-editor-host .token.char,
+.code-editor-host .token.attr-value,
+.code-editor-host .token.regex,
+.code-editor-host .token.template-string {
+  color: #ce9178;
+}
+
+.code-editor-host .token.number,
+.code-editor-host .token.constant,
+.code-editor-host .token.symbol,
+.code-editor-host .token.inserted {
+  color: #b5cea8;
+}
+
+.code-editor-host .token.function,
+.code-editor-host .token.method {
+  color: #dcdcaa;
+}
+
+.code-editor-host .token.operator,
+.code-editor-host .token.entity,
+.code-editor-host .token.url {
+  color: #d4d4d4;
+}
+
+.code-editor-host .token.variable,
+.code-editor-host .token.parameter {
+  color: #9cdcfe;
+}
+
+.code-editor-host .token.property,
+.code-editor-host .token.tag,
+.code-editor-host .token.attr-name,
+.code-editor-host .token.namespace {
+  color: #9cdcfe;
+}
+
+.code-editor-host .token.decorator,
+.code-editor-host .token.annotation {
+  color: #c586c0;
+}
+
+.code-editor-host .token.deleted {
+  color: #f44747;
+}
+
+.code-editor-host .token.bold {
+  font-weight: bold;
+}
+
+.code-editor-host .token.italic {
+  font-style: italic;
+}
+
+/* Placeholder text in the textarea */
+.code-editor-host .code-editor-textarea::placeholder {
+  color: #6e6e6e;
+}

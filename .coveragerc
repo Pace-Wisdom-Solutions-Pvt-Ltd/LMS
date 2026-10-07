@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+[run]
+branch = True
+omit =
+    */migrations/*
+    */migrations/*.py
+    */tests/*
+    */tests.py
+    */__pycache__/*
+    */site-packages/*
+    */Library/Caches/pypoetry/*
+    */Library/Caches/*/site-packages/*
+    */venv/*
+    */.venv/*
+    */node_modules/*
+    */htmlcov/*
+    manage.py
+    lms_core/asgi.py
+    lms_core/wsgi.py
+    lms_core/celery.py
+    **/settings.py
+
+[report]
+exclude_lines =
+    pragma: no cover
