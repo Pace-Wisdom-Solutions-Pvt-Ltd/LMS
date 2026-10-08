@@ -1,0 +1,188 @@
+<!--
+SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+SPDX-License-Identifier: Apache-2.0
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="600" viewBox="0 0 1280 600" role="img" aria-labelledby="title desc">
+  <title id="title">LMS architecture</title>
+  <desc id="desc">The web app and the Flutter mobile app call the Django REST API with JWT. The API stores data in PostgreSQL, uploads on local disk or S3, and queues jobs in Redis. A Celery worker picks jobs from Redis and sends email through Amazon SES or SMTP.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1222"/>
+      <stop offset="1" stop-color="#121D38"/>
+    </linearGradient>
+    <linearGradient id="apiStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6CC25E"/>
+      <stop offset="0.5" stop-color="#3BBFC4"/>
+      <stop offset="1" stop-color="#2E9BE0"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1A2747"/>
+      <stop offset="1" stop-color="#141F3A"/>
+    </linearGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="50"/>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#FFFFFF" stroke-opacity="0.035"/>
+    </pattern>
+    <clipPath id="frame"><rect width="1280" height="600" rx="24"/></clipPath>
+
+    <!-- Connection paths (reused for the flowing lines and the moving packets) -->
+    <path id="e-web"     d="M262 200 C 312 200, 310 250, 362 250"/>
+    <path id="e-mobile"  d="M262 420 C 312 420, 310 370, 362 370"/>
+    <path id="e-db"      d="M642 250 C 692 250, 690 105, 742 105"/>
+    <path id="e-files"   d="M642 310 L 742 310"/>
+    <path id="e-redis"   d="M642 370 C 692 370, 690 515, 742 515"/>
+    <path id="e-worker"  d="M942 515 L 1022 515"/>
+    <path id="e-mail"    d="M1132 470 L 1132 356"/>
+  </defs>
+
+  <style>
+    .t-title { font: 700 26px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #FFFFFF; }
+    .t-sub   { font: 500 15px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #8FA3C8; }
+    .t-name  { font: 700 18px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #FFFFFF; }
+    .t-meta  { font: 500 13.5px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #9DB0D3; }
+    .t-chip  { font: 600 13px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #DCE6FF; }
+    .t-edge  { font: 600 12px 'Cascadia Code', 'SFMono-Regular', Consolas, monospace; fill: #7F93BA; }
+    .t-icon  { font: 22px 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; }
+    .base  { fill: none; stroke: #2B3B63; stroke-width: 3; }
+    .flow  { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 6 12; animation: flow 1.2s linear infinite; }
+    @keyframes flow { to { stroke-dashoffset: -18; } }
+    .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 3s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+    .blob { animation: drift 20s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+    @keyframes drift { to { transform: translate(50px, -30px) scale(1.15); } }
+    .live { animation: blink 1.6s ease-in-out infinite; }
+    @keyframes blink { 50% { opacity: 0.25; } }
+    @media (prefers-reduced-motion: reduce) { .flow, .pulse, .blob, .live { animation: none; } }
+  </style>
+
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="600" fill="url(#bg)"/>
+    <rect width="1280" height="600" fill="url(#grid)"/>
+    <circle class="blob" cx="500" cy="310" r="190" fill="#3BBFC4" opacity="0.13" filter="url(#soft)"/>
+    <circle class="blob" cx="1100" cy="120" r="160" fill="#E2507A" opacity="0.10" filter="url(#soft)"/>
+
+    <!-- Heading -->
+    <text class="t-title" x="40" y="56">How it fits together</text>
+    <text class="t-sub" x="40" y="82">Requests flow left to right · background jobs run through Redis and Celery</text>
+    <g transform="translate(1040 46)">
+      <circle class="live" cx="0" cy="0" r="6" fill="#6CC25E" filter="url(#glow)"/>
+      <text class="t-sub" x="14" y="5">live data flow</text>
+    </g>
+
+    <!-- Base lines -->
+    <use href="#e-web" class="base"/>
+    <use href="#e-mobile" class="base"/>
+    <use href="#e-db" class="base"/>
+    <use href="#e-files" class="base"/>
+    <use href="#e-redis" class="base"/>
+    <use href="#e-worker" class="base"/>
+    <use href="#e-mail" class="base"/>
+
+    <!-- Flowing dashed lines -->
+    <use href="#e-web" class="flow" stroke="#3BBFC4"/>
+    <use href="#e-mobile" class="flow" stroke="#3BBFC4"/>
+    <use href="#e-db" class="flow" stroke="#6CC25E"/>
+    <use href="#e-files" class="flow" stroke="#F0912F"/>
+    <use href="#e-redis" class="flow" stroke="#E2507A"/>
+    <use href="#e-worker" class="flow" stroke="#E2507A"/>
+    <use href="#e-mail" class="flow" stroke="#8B6FD0"/>
+
+    <!-- Moving packets: requests (bright) and responses (white) -->
+    <g filter="url(#glow)">
+      <circle r="6" fill="#3BBFC4"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#e-web"/></animateMotion></circle>
+      <circle r="4.5" fill="#FFFFFF"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#e-web"/></animateMotion></circle>
+      <circle r="6" fill="#3BBFC4"><animateMotion dur="2.8s" begin="0.6s" repeatCount="indefinite"><mpath href="#e-mobile"/></animateMotion></circle>
+      <circle r="4.5" fill="#FFFFFF"><animateMotion dur="2.8s" begin="2s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#e-mobile"/></animateMotion></circle>
+      <circle r="6" fill="#6CC25E"><animateMotion dur="2.2s" begin="0.3s" repeatCount="indefinite"><mpath href="#e-db"/></animateMotion></circle>
+      <circle r="6" fill="#F0912F"><animateMotion dur="1.8s" begin="1s" repeatCount="indefinite"><mpath href="#e-files"/></animateMotion></circle>
+      <circle r="6" fill="#E2507A"><animateMotion dur="2.6s" begin="0.8s" repeatCount="indefinite"><mpath href="#e-redis"/></animateMotion></circle>
+      <circle r="6" fill="#E2507A"><animateMotion dur="1.4s" begin="1.6s" repeatCount="indefinite"><mpath href="#e-worker"/></animateMotion></circle>
+      <circle r="6" fill="#8B6FD0"><animateMotion dur="1.6s" begin="2.2s" repeatCount="indefinite"><mpath href="#e-mail"/></animateMotion></circle>
+    </g>
+
+    <!-- Edge labels -->
+    <text class="t-edge" x="272" y="186">HTTPS · JWT</text>
+    <text class="t-edge" x="272" y="446">HTTPS · JWT</text>
+    <text class="t-edge" x="662" y="160">SQL</text>
+    <text class="t-edge" x="666" y="300">files</text>
+    <text class="t-edge" x="662" y="470">jobs</text>
+    <text class="t-edge" x="954" y="503">tasks</text>
+    <text class="t-edge" x="1142" y="420">send</text>
+
+    <!-- Clients -->
+    <g transform="translate(40 150)">
+      <rect width="222" height="100" rx="16" fill="url(#card)" stroke="#3BBFC4" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="44">🖥️</text>
+      <text class="t-name" x="54" y="42">Web app</text>
+      <text class="t-meta" x="18" y="72">React 19 · TypeScript · Vite</text>
+    </g>
+    <g transform="translate(40 370)">
+      <rect width="222" height="100" rx="16" fill="url(#card)" stroke="#3BBFC4" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="44">📱</text>
+      <text class="t-name" x="54" y="42">Mobile app</text>
+      <text class="t-meta" x="18" y="72">Flutter · Android &amp; iOS</text>
+    </g>
+
+    <!-- API -->
+    <g transform="translate(362 160)">
+      <rect class="pulse" x="-8" y="-8" width="296" height="316" rx="24" fill="none" stroke="url(#apiStroke)" stroke-width="2"/>
+      <rect width="280" height="300" rx="18" fill="url(#card)" stroke="url(#apiStroke)" stroke-width="2"/>
+      <text class="t-icon" x="22" y="48">🔐</text>
+      <text class="t-name" x="58" y="46">Django REST API</text>
+      <text class="t-meta" x="22" y="78">Python 3.13 · Django 6 · DRF</text>
+      <g transform="translate(22 104)">
+        <rect width="114" height="34" rx="10" fill="#FFFFFF" fill-opacity="0.06" stroke="#6CC25E" stroke-opacity="0.6"/>
+        <text class="t-chip" x="57" y="22" text-anchor="middle">JWT auth</text>
+        <rect x="122" width="114" height="34" rx="10" fill="#FFFFFF" fill-opacity="0.06" stroke="#3BBFC4" stroke-opacity="0.6"/>
+        <text class="t-chip" x="179" y="22" text-anchor="middle">RBAC</text>
+        <rect y="44" width="114" height="34" rx="10" fill="#FFFFFF" fill-opacity="0.06" stroke="#2E9BE0" stroke-opacity="0.6"/>
+        <text class="t-chip" x="57" y="66" text-anchor="middle">Multi-tenant</text>
+        <rect x="122" y="44" width="114" height="34" rx="10" fill="#FFFFFF" fill-opacity="0.06" stroke="#E2507A" stroke-opacity="0.6"/>
+        <text class="t-chip" x="179" y="66" text-anchor="middle">OpenAPI docs</text>
+        <rect y="88" width="236" height="34" rx="10" fill="#FFFFFF" fill-opacity="0.06" stroke="#F0912F" stroke-opacity="0.6"/>
+        <text class="t-chip" x="118" y="110" text-anchor="middle">Courses · Batches · Progress · Grading</text>
+      </g>
+      <text class="t-meta" x="22" y="272">Every query scoped to the organisation</text>
+    </g>
+
+    <!-- Data stores -->
+    <g transform="translate(742 60)">
+      <rect width="200" height="90" rx="16" fill="url(#card)" stroke="#6CC25E" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="42">🐘</text>
+      <text class="t-name" x="54" y="40">PostgreSQL</text>
+      <text class="t-meta" x="18" y="68">Primary database</text>
+    </g>
+    <g transform="translate(742 265)">
+      <rect width="200" height="90" rx="16" fill="url(#card)" stroke="#F0912F" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="42">🗂️</text>
+      <text class="t-name" x="54" y="40">Storage</text>
+      <text class="t-meta" x="18" y="68">Local disk or Amazon S3</text>
+    </g>
+    <g transform="translate(742 470)">
+      <rect width="200" height="90" rx="16" fill="url(#card)" stroke="#E2507A" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="42">🧠</text>
+      <text class="t-name" x="54" y="40">Redis</text>
+      <text class="t-meta" x="18" y="68">Cache · task queue</text>
+    </g>
+
+    <!-- Background processing -->
+    <g transform="translate(1022 470)">
+      <rect width="220" height="90" rx="16" fill="url(#card)" stroke="#E2507A" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="42">⚙️</text>
+      <text class="t-name" x="54" y="40">Celery worker</text>
+      <text class="t-meta" x="18" y="68">Emails · daily analytics</text>
+    </g>
+    <g transform="translate(1022 266)">
+      <rect width="220" height="90" rx="16" fill="url(#card)" stroke="#8B6FD0" stroke-opacity="0.7" stroke-width="1.5"/>
+      <text class="t-icon" x="18" y="42">✉️</text>
+      <text class="t-name" x="54" y="40">Email</text>
+      <text class="t-meta" x="18" y="68">Amazon SES or SMTP</text>
+    </g>
+  </g>
+</svg>

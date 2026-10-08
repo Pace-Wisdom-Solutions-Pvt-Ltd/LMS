@@ -1,0 +1,114 @@
+<!--
+SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+SPDX-License-Identifier: Apache-2.0
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="260" viewBox="0 0 1280 260" role="img" aria-labelledby="title desc">
+  <title id="title">How a course runs in LMS</title>
+  <desc id="desc">Five steps light up in turn: Build the course, Enrol students in batches, Learn through the roadmap, Grade submissions, and Track progress.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1222"/>
+      <stop offset="1" stop-color="#121D38"/>
+    </linearGradient>
+    <linearGradient id="track" gradientUnits="userSpaceOnUse" x1="150" y1="0" x2="1130" y2="0">
+      <stop offset="0" stop-color="#6CC25E"/>
+      <stop offset="0.25" stop-color="#3BBFC4"/>
+      <stop offset="0.5" stop-color="#2E9BE0"/>
+      <stop offset="0.75" stop-color="#E2507A"/>
+      <stop offset="1" stop-color="#F0912F"/>
+    </linearGradient>
+    <filter id="soft" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="frame"><rect width="1280" height="260" rx="24"/></clipPath>
+  </defs>
+  <style>
+    .name { font: 700 18px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #8FA3C8; }
+    .desc { font: 500 13.5px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #8FA3C8; }
+    .ic   { font: 26px 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; }
+    .progress { stroke-dasharray: 980 980; stroke-dashoffset: 980; animation: grow 13.0s linear infinite; }
+    @keyframes grow { 0% { stroke-dashoffset: 980; } 76.92%, 96% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 980; opacity: 0; } }
+    .s0 .halo, .s0 .fillc { animation: on0 13.0s linear infinite; }
+    @keyframes on0 { 0%, 0.00% { opacity: 0; } 0.01%, 96% { opacity: 1; } 100% { opacity: 0; } }
+    .s0 .lbl { animation: lbl0 13.0s linear infinite; }
+    @keyframes lbl0 { 0%, 0.00% { fill: #8FA3C8; } 0.01%, 96% { fill: #FFFFFF; } 100% { fill: #8FA3C8; } }
+    .s1 .halo, .s1 .fillc { animation: on1 13.0s linear infinite; }
+    @keyframes on1 { 0%, 19.22% { opacity: 0; } 19.23%, 96% { opacity: 1; } 100% { opacity: 0; } }
+    .s1 .lbl { animation: lbl1 13.0s linear infinite; }
+    @keyframes lbl1 { 0%, 19.22% { fill: #8FA3C8; } 19.23%, 96% { fill: #FFFFFF; } 100% { fill: #8FA3C8; } }
+    .s2 .halo, .s2 .fillc { animation: on2 13.0s linear infinite; }
+    @keyframes on2 { 0%, 38.45% { opacity: 0; } 38.46%, 96% { opacity: 1; } 100% { opacity: 0; } }
+    .s2 .lbl { animation: lbl2 13.0s linear infinite; }
+    @keyframes lbl2 { 0%, 38.45% { fill: #8FA3C8; } 38.46%, 96% { fill: #FFFFFF; } 100% { fill: #8FA3C8; } }
+    .s3 .halo, .s3 .fillc { animation: on3 13.0s linear infinite; }
+    @keyframes on3 { 0%, 57.68% { opacity: 0; } 57.69%, 96% { opacity: 1; } 100% { opacity: 0; } }
+    .s3 .lbl { animation: lbl3 13.0s linear infinite; }
+    @keyframes lbl3 { 0%, 57.68% { fill: #8FA3C8; } 57.69%, 96% { fill: #FFFFFF; } 100% { fill: #8FA3C8; } }
+    .s4 .halo, .s4 .fillc { animation: on4 13.0s linear infinite; }
+    @keyframes on4 { 0%, 76.91% { opacity: 0; } 76.92%, 96% { opacity: 1; } 100% { opacity: 0; } }
+    .s4 .lbl { animation: lbl4 13.0s linear infinite; }
+    @keyframes lbl4 { 0%, 76.91% { fill: #8FA3C8; } 76.92%, 96% { fill: #FFFFFF; } 100% { fill: #8FA3C8; } }
+    @media (prefers-reduced-motion: reduce) {
+      .progress { animation: none; stroke-dashoffset: 0; }
+      .halo, .fillc { animation: none; opacity: 1; }
+      .lbl { animation: none; fill: #FFFFFF; }
+    }
+  </style>
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="260" fill="url(#bg)"/>
+    <line x1="150" y1="120" x2="1130" y2="120" stroke="#2B3B63" stroke-width="4" stroke-linecap="round"/>
+    <line class="progress" x1="150" y1="120" x2="1130" y2="120" stroke="url(#track)" stroke-width="6" stroke-linecap="round"/>
+    <circle r="7" fill="#FFFFFF" filter="url(#glow)">
+      <animate attributeName="cx" values="150;1130;1130;150" keyTimes="0;0.7692;0.96;1" dur="13.0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.7692;0.7892;1" dur="13.0s" repeatCount="indefinite"/>
+      <set attributeName="cy" to="120"/>
+    </circle>
+    <g class="s0">
+      <circle class="halo" cx="150" cy="120" r="44" fill="#6CC25E" opacity="0" filter="url(#soft)"/>
+      <circle cx="150" cy="120" r="36" fill="#141F3A" stroke="#2B3B63" stroke-width="3"/>
+      <circle class="fillc" cx="150" cy="120" r="36" fill="#6CC25E" fill-opacity="0.18" stroke="#6CC25E" stroke-width="3" opacity="0"/>
+      <text class="ic" x="150" y="129" text-anchor="middle">🧱</text>
+      <text class="lbl name" x="150" y="190" text-anchor="middle">1. Build</text>
+      <text class="desc" x="150" y="214" text-anchor="middle">Admins &amp; trainers create</text>
+      <text class="desc" x="150" y="233" text-anchor="middle">levels, chapters, quizzes</text>
+    </g>
+    <g class="s1">
+      <circle class="halo" cx="395" cy="120" r="44" fill="#3BBFC4" opacity="0" filter="url(#soft)"/>
+      <circle cx="395" cy="120" r="36" fill="#141F3A" stroke="#2B3B63" stroke-width="3"/>
+      <circle class="fillc" cx="395" cy="120" r="36" fill="#3BBFC4" fill-opacity="0.18" stroke="#3BBFC4" stroke-width="3" opacity="0"/>
+      <text class="ic" x="395" y="129" text-anchor="middle">👥</text>
+      <text class="lbl name" x="395" y="190" text-anchor="middle">2. Enrol</text>
+      <text class="desc" x="395" y="214" text-anchor="middle">Students join time-boxed</text>
+      <text class="desc" x="395" y="233" text-anchor="middle">batches, one by one or in bulk</text>
+    </g>
+    <g class="s2">
+      <circle class="halo" cx="640" cy="120" r="44" fill="#2E9BE0" opacity="0" filter="url(#soft)"/>
+      <circle cx="640" cy="120" r="36" fill="#141F3A" stroke="#2B3B63" stroke-width="3"/>
+      <circle class="fillc" cx="640" cy="120" r="36" fill="#2E9BE0" fill-opacity="0.18" stroke="#2E9BE0" stroke-width="3" opacity="0"/>
+      <text class="ic" x="640" y="129" text-anchor="middle">🗺️</text>
+      <text class="lbl name" x="640" y="190" text-anchor="middle">3. Learn</text>
+      <text class="desc" x="640" y="214" text-anchor="middle">Learners follow a guided</text>
+      <text class="desc" x="640" y="233" text-anchor="middle">roadmap on web or mobile</text>
+    </g>
+    <g class="s3">
+      <circle class="halo" cx="885" cy="120" r="44" fill="#E2507A" opacity="0" filter="url(#soft)"/>
+      <circle cx="885" cy="120" r="36" fill="#141F3A" stroke="#2B3B63" stroke-width="3"/>
+      <circle class="fillc" cx="885" cy="120" r="36" fill="#E2507A" fill-opacity="0.18" stroke="#E2507A" stroke-width="3" opacity="0"/>
+      <text class="ic" x="885" y="129" text-anchor="middle">✅</text>
+      <text class="lbl name" x="885" y="190" text-anchor="middle">4. Grade</text>
+      <text class="desc" x="885" y="214" text-anchor="middle">Trainers review tasks with</text>
+      <text class="desc" x="885" y="233" text-anchor="middle">scores and written feedback</text>
+    </g>
+    <g class="s4">
+      <circle class="halo" cx="1130" cy="120" r="44" fill="#F0912F" opacity="0" filter="url(#soft)"/>
+      <circle cx="1130" cy="120" r="36" fill="#141F3A" stroke="#2B3B63" stroke-width="3"/>
+      <circle class="fillc" cx="1130" cy="120" r="36" fill="#F0912F" fill-opacity="0.18" stroke="#F0912F" stroke-width="3" opacity="0"/>
+      <text class="ic" x="1130" y="129" text-anchor="middle">📈</text>
+      <text class="lbl name" x="1130" y="190" text-anchor="middle">5. Track</text>
+      <text class="desc" x="1130" y="214" text-anchor="middle">Progress, points and levels</text>
+      <text class="desc" x="1130" y="233" text-anchor="middle">for every learner</text>
+    </g>
+  </g>
+</svg>
