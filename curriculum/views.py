@@ -1879,6 +1879,37 @@ class CompleteNodeAPIView(APIView):
                 return True
         return False
 
+    def _check_task_approved(self, node, user):
+        task = getattr(node, 'task', None)
+        if task is None or task.is_deleted:
+            return True
+        return TaskSubmission.objects.filter(
+            Q(student=user) | Q(student__user=user),
+            task=task,
+            status__in=['Approved', 'Graded']
+        ).exists()
+
+    def _check_quizzes_passed(self, node, user):
+        for quiz in node.quizzes.all():
+            passed = QuizSubmission.objects.filter(
+                Q(student=user) | Q(student__user=user),
+                quiz=quiz,
+                status='Passed'
+            ).exists()
+            if not passed:
+                return False
+        return True
+
+    def _unmet_requirement_detail(self, node, user):
+        """Return an error message for the first requirement the student has not met, or None."""
+        if not self._check_assessment_passed(node, user):
+            return 'Cannot complete node with pending assessment.'
+        if not self._check_task_approved(node, user):
+            return 'Cannot complete node until the task submission is approved.'
+        if not self._check_quizzes_passed(node, user):
+            return 'Cannot complete node until all quizzes are passed.'
+        return None
+
     def post(self, request, node_id):
         node = get_object_or_404(Node, id=node_id)
 
@@ -1886,8 +1917,9 @@ class CompleteNodeAPIView(APIView):
         if error_response is not None:
             return Response(error_response, status=status.HTTP_403_FORBIDDEN)
 
-        if not self._check_assessment_passed(node, request.user):
-            return Response({'detail': 'Cannot complete node with pending assessment.'}, status=status.HTTP_400_BAD_REQUEST)
+        unmet_detail = self._unmet_requirement_detail(node, request.user)
+        if unmet_detail:
+            return Response({'detail': unmet_detail}, status=status.HTTP_400_BAD_REQUEST)
 
         if StudentNodeProgress.objects.filter(
             Q(student=request.user) | Q(student__user=request.user),
