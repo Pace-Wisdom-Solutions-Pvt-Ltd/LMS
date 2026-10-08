@@ -67,8 +67,8 @@ def test_batchstudent_create_and_destroy_flow():
     assert resp2.status_code in (204,)
 
 
-def test_batch_student_assignment_date_exceeded():
-    """Test that students cannot be assigned to batches created more than 2 weeks ago"""
+def test_batch_student_assignment_blocked_for_expired_batch():
+    """Test that students cannot be assigned to a batch whose end date has passed"""
     from django.utils import timezone
     from datetime import timedelta
     
@@ -103,13 +103,12 @@ def test_batch_student_assignment_date_exceeded():
     view.kwargs = {'org_pk': org.id, 'batch_pk': batch.id}
     resp = view.create(request, org.id, batch.id)
     
-    # Should return 400 Bad Request with "Assignment Date Exceeded" error
     assert resp.status_code == 400
-    assert resp.data['error'] == 'Assignment Date Exceeded'
+    assert resp.data['error'] == 'Cannot add students to an inactive or expired batch.'
 
 
-def test_batch_student_assignment_allowed_for_recent_batch():
-    """Test that students can be assigned to batches created less than 2 weeks ago"""
+def test_batch_student_assignment_allowed_for_old_running_batch():
+    """Test that students can be assigned to a batch created long ago that is still running"""
     from django.utils import timezone
     from datetime import timedelta
     
@@ -117,16 +116,15 @@ def test_batch_student_assignment_allowed_for_recent_batch():
     user = User.objects.create_user(email='admin@org.com', password=TEST_PASSWORD)
     org = Organization.objects.create(name='OrgX', contact_email='x@o.com')
     
-    # Create a batch that was created recently (1 week ago)
-    one_week_ago = timezone.now() - timedelta(weeks=1)
+    # Batch planned two months ago that runs until next month
+    two_months_ago = timezone.now() - timedelta(weeks=8)
     batch = Batch.objects.create(
-        organization=org, 
-        name='Recent Batch', 
-        start_date=one_week_ago.date(), 
-        end_date=one_week_ago.date()
+        organization=org,
+        name='Planned Batch',
+        start_date=two_months_ago.date(),
+        end_date=(timezone.now() + timedelta(weeks=4)).date()
     )
-    # Manually set created_at to 1 week ago
-    batch.created_at = one_week_ago
+    batch.created_at = two_months_ago
     batch.save()
 
     # ensure student role exists
