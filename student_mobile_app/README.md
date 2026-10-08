@@ -237,7 +237,7 @@ Then run `flutter gen-l10n` (for the `.arb` change) and rebuild. A hot reload wi
 the two native files.
 
 **The bundle identifier is a separate thing**, and renaming the app is usually when you notice it
-is still the `flutter create` placeholder `com.example.lms`. Changing it means:
+is still the `flutter create` placeholder `com.lms.student`. Changing it means:
 
 - `android/app/build.gradle.kts` — both `namespace` and `applicationId`;
 - `ios/Runner.xcodeproj/project.pbxproj` — `PRODUCT_BUNDLE_IDENTIFIER` (do it in Xcode rather
