@@ -46,11 +46,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bool ok = await vm.switchOrg(orgId);
     if (!ok) return;
 
-    // Through the router itself, not this `context`: switching the session
-    // rebuilds the subtree this screen lives in, so by now its element is
-    // gone and `context.goNamed` would be a call on a dead tree. `appRouter`
-    // is a singleton and outlives all of it.
-    appRouter.goNamed(AppRouteNames.home);
+    // **Through the splash, not straight to Home.** Every learner endpoint is
+    // scoped by `org_id`, so the whole shell has to refetch — and going to
+    // Home does not make it. `appRouter` is a singleton whose navigator holds
+    // a `GlobalKey`, so the session subtree rebuilding reparents the shell's
+    // screens instead of recreating them: their `initState` never runs again.
+    // The splash is not part of the shell, so routing there tears it down, and
+    // coming back builds every tab from scratch — the cold-start path, which
+    // is the one known to fetch.
+    //
+    // Through the router itself, not this `context`: switching the session has
+    // already rebuilt the subtree this screen lives in, so by now its element
+    // is gone and `context.goNamed` would be a call on a dead tree.
+    appRouter.goNamed(AppRouteNames.splash);
   }
 
   Future<void> _signOut(BuildContext context) async {

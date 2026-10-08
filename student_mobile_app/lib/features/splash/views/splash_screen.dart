@@ -104,7 +104,20 @@ class _SplashScreenState extends State<SplashScreen>
         context.goNamed(AppRouteNames.signIn);
         return;
       }
+      // Brand first, then scope — the order [ProfileViewModel.switchOrg] uses,
+      // for the same reason: `selectOrg` puts the org into
+      // `SessionProvider.sessionKey`, which rebuilds the provider tier.
       await branding.refresh(chosen);
+      if (!mounted) return;
+
+      // **This is what makes the choice stick.** Refreshing the brand only
+      // caches how the organization looks; without `selectOrg` the pick lives
+      // and dies in this frame — `_orgId` is never set and never persisted. So
+      // the next launch showed the picker again, wearing the logo of the org
+      // it was still refusing to remember, and Profile hid its organization
+      // row entirely because that row renders on `currentOrg`, which stayed
+      // null.
+      await session.selectOrg(chosen);
       if (!mounted) return;
     }
 

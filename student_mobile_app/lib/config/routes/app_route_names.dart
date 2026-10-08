@@ -18,10 +18,8 @@ abstract final class AppRouteNames {
   // Pushed on the root navigator, so the tab bar is absent rather than
   // animated away.
   static const String roadmap = 'roadmap';
-  static const String lesson = 'lesson';
   static const String task = 'task';
   static const String quiz = 'quiz';
-  static const String coding = 'coding';
   static const String quizResult = 'quiz-result';
   static const String editProfile = 'edit-profile';
   static const String changePassword = 'change-password';
@@ -48,8 +46,6 @@ abstract final class AppRoutePaths {
   static const String profile = '/app/profile';
 
   static const String roadmap = '/course/:courseId';
-  static const String lesson =
-      '/course/:courseId/module/:moduleId/lesson/:nodeId';
   // Everything that opens a node takes the ids that identify it and fetches
   // for itself. Nothing is handed a model through `extra`: a route that only
   // works when the previous screen loaded something cannot be deep-linked,
@@ -60,8 +56,6 @@ abstract final class AppRoutePaths {
       '/course/:courseId/module/:moduleId/node/:nodeId/quiz';
   static const String quizResult =
       '/course/:courseId/module/:moduleId/node/:nodeId/quiz/result';
-  static const String coding =
-      '/course/:courseId/module/:moduleId/node/:nodeId/coding';
   static const String editProfile = '/profile/edit';
   static const String changePassword = '/profile/password';
 

@@ -214,6 +214,12 @@ class _FileVideoState extends State<_FileVideo> {
   /// The scrubber wears the organization's colour like every other filled
   /// control, and the options sheet's labels come from the `.arb` rather than
   /// from the package's own English.
+  ///
+  /// **Both orientation lists are set deliberately.** `chewie` defaults
+  /// `deviceOrientationsAfterFullScreen` to `DeviceOrientation.values`, so one
+  /// trip through fullscreen would hand the whole app back every orientation
+  /// and quietly undo the portrait lock for the rest of the session. See
+  /// [AppOrientation].
   ChewieController _chewieFor(VideoPlayerController controller) {
     final BrandColors brand = context.brand;
     final ChewieProgressColors bar = ChewieProgressColors(
@@ -238,6 +244,8 @@ class _FileVideoState extends State<_FileVideo> {
         playbackSpeedButtonText: context.l10n.videoPlaybackSpeed,
         cancelButtonText: context.l10n.cancel,
       ),
+      deviceOrientationsOnEnterFullScreen: AppOrientation.videoFullscreen,
+      deviceOrientationsAfterFullScreen: AppOrientation.portrait,
       aspectRatio: controller.value.aspectRatio == 0
           ? 16 / 9
           : controller.value.aspectRatio,

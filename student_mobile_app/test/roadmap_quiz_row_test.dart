@@ -59,7 +59,6 @@ void main() {
     'has_task': false,
     'has_quiz': true,
     'has_assessment': false,
-    'has_coding_questions': false,
     'quizzes': <dynamic>[
       <String, dynamic>{
         'id': 84,
@@ -96,7 +95,6 @@ void main() {
         : null,
     'is_completed': completed,
     'is_accessible': true,
-    'coding_questions': <dynamic>[],
   };
 
   /// Pumps the roadmap and opens the quiz row.

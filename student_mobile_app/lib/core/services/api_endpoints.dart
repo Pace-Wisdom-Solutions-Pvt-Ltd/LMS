@@ -48,60 +48,6 @@ abstract final class ApiEndPoints {
   ) =>
       '$_api/organizations/$orgId/courses/$courseId/modules/$moduleId/nodes/$nodeId/';
 
-  /// Node-scoped coding practice. Everything below hangs off this prefix, so
-  /// the four verbs cannot drift apart.
-  static String _nodeCoding(
-    int orgId,
-    String courseId,
-    String moduleId,
-    String nodeId,
-  ) => '${node(orgId, courseId, moduleId, nodeId)}coding-questions/';
-
-  static String codingQuestions(
-    int orgId,
-    String courseId,
-    String moduleId,
-    String nodeId,
-  ) => _nodeCoding(orgId, courseId, moduleId, nodeId);
-
-  /// Starter code for one language — generated on demand the first time.
-  static String codingSignature(
-    int orgId,
-    String courseId,
-    String moduleId,
-    String nodeId,
-    String questionId,
-  ) =>
-      '${_nodeCoding(orgId, courseId, moduleId, nodeId)}$questionId/signature/';
-
-  /// A dry run against the sample cases, or against custom stdin. Not graded.
-  static String codingRun(
-    int orgId,
-    String courseId,
-    String moduleId,
-    String nodeId,
-    String questionId,
-  ) => '${_nodeCoding(orgId, courseId, moduleId, nodeId)}$questionId/run/';
-
-  static String codingSubmit(
-    int orgId,
-    String courseId,
-    String moduleId,
-    String nodeId,
-    String questionId,
-  ) => '${_nodeCoding(orgId, courseId, moduleId, nodeId)}$questionId/submit/';
-
-  /// The graded result. Judging is asynchronous, so this is polled.
-  static String codingSubmission(
-    int orgId,
-    String courseId,
-    String moduleId,
-    String nodeId,
-    String questionId,
-    String submissionId,
-  ) =>
-      '${_nodeCoding(orgId, courseId, moduleId, nodeId)}$questionId/submissions/$submissionId/';
-
   // ── Lesson / task / quiz ────────────────────────────────────────────────
   static String completeNode(String nodeId) => '$_api/nodes/$nodeId/complete/';
 

@@ -16,13 +16,17 @@ It comes in two editions:
 - 🆓 **Community (free, open source):** this repository. It covers the core LMS: login, organisation admin, course builder, trainer and student portals, progress tracking, and gamification.
 - 💎 **Enterprise (paid):** everything in Community, plus the Super Admin console, assessments and certificates, coding interviews, SSO, notifications, calendars, audit logs, and advanced reporting.
 
-This repository holds both halves of the stack:
+This repository holds the whole stack:
 
 - The **backend REST API** (Python 3.13, Django 6, Django REST Framework) at the repository root.
 - The **web frontend** (React 19, TypeScript, Vite) under [`frontend/`](frontend/).
+- The **student mobile app** (Flutter, Android and iOS) under [`student_mobile_app/`](student_mobile_app/) — learner-only: courses, lessons, tasks, quizzes and progress, against the same API.
 
 > 📘 **Frontend documentation** lives in its own README at **[`frontend/README.md`](frontend/README.md)** (path: `lms-open-source/frontend/README.md`).
 > It covers the frontend tech stack, setup and environment variables, the three roles, the full feature list, and the project structure.
+>
+> 📱 **Mobile app documentation** lives at **[`student_mobile_app/README.md`](student_mobile_app/README.md)**.
+> It covers the Flutter setup, the one environment variable it takes, the architecture, and how to build and release it.
 
 ---
 
@@ -263,7 +267,7 @@ One account can hold several roles, for example a Trainer who is also an Institu
 | Learning content | SCORM / xAPI import · native video hosting with watch progress · discussion threads per chapter |
 | Assessment depth | Advanced proctoring · question bank with tags & random pools · rubric grading · skill-wise score breakdown |
 | Reporting & compliance | Mandatory training compliance tracking · data export, account deletion & retention (GDPR / DPDP) |
-| Platform | Custom subdomains & white-label email · subscription plans & usage limits · public API keys & webhooks · SAML SSO / SCIM · mobile app / PWA with offline reading |
+| Platform | Custom subdomains & white-label email · subscription plans & usage limits · public API keys & webhooks · SAML SSO / SCIM · PWA with offline reading |
 | Learner experience | Course catalogue with self-enrolment · learning paths across courses · notes & bookmarks · multi-language UI |
 
 Want to help build one of these? See [Contributing](#contributing).
@@ -283,7 +287,8 @@ Want to help build one of these? See [Contributing](#contributing).
 | Spreadsheets | pandas, openpyxl, xlrd (bulk uploads & Excel exports) |
 | API docs | OpenAPI 3 via `drf-spectacular` (Swagger UI + ReDoc) |
 | Frontend | React 19, TypeScript, Vite, React Router |
-| Tests | pytest, pytest-django, pytest-cov (backend) · Vitest (frontend) |
+| Mobile | Flutter (Dart 3.13), MVVM + Provider, go_router, Dio, Hive |
+| Tests | pytest, pytest-django, pytest-cov (backend) · Vitest (frontend) · `flutter test` (mobile) |
 
 ### Project structure
 
@@ -298,6 +303,7 @@ Want to help build one of these? See [Contributing](#contributing).
 ├── gamification/        # Points & levels
 ├── settings/            # Shared Amazon SES client
 ├── frontend/            # React 19 + TypeScript + Vite single-page app (docs: frontend/README.md)
+├── student_mobile_app/  # Flutter learner app for Android and iOS (docs: student_mobile_app/README.md)
 ├── Dockerfile           # Backend API image
 ├── docker-compose.yml   # Full local stack: Postgres, Redis, API, Celery worker, frontend
 ├── pyproject.toml       # Poetry dependencies + pytest/coverage config
@@ -306,7 +312,9 @@ Want to help build one of these? See [Contributing](#contributing).
 └── NOTICE               # Copyright and attribution notices
 ```
 
-Each backend app has its own `README.md` with deeper notes. The frontend is documented in [`frontend/README.md`](frontend/README.md).
+Each backend app has its own `README.md` with deeper notes. The frontend is documented in
+[`frontend/README.md`](frontend/README.md) and the mobile app in
+[`student_mobile_app/README.md`](student_mobile_app/README.md).
 
 ---
 

@@ -62,8 +62,8 @@ void main() {
     WidgetTester tester,
   ) async {
     // `Container.alignment` with no fixed height takes every pixel it is
-    // given, which in a `bottomNavigationBar` is the whole screen — the
-    // coding screen's body was squeezed to nothing by exactly that.
+    // given, which in a `bottomNavigationBar` is the whole screen — a screen
+    // body was squeezed to nothing by exactly that.
     tester.view.physicalSize = const Size(420, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

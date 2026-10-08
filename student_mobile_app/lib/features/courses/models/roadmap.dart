@@ -191,8 +191,8 @@ class RoadmapNode {
 
   /// What the trainer wants the learner to take away, and the shape of the
   /// lesson. Both sit on the roadmap payload, so the expanded row can show
-  /// them without waiting on the node endpoint — which matters for quiz,
-  /// quiz and coding rows, since they never call it.
+  /// them without waiting on the node endpoint — which matters for quiz
+  /// rows, since they never call it.
   final String focusAreas;
   final String quickOutline;
 
@@ -200,7 +200,6 @@ class RoadmapNode {
   final bool hasTask;
   final bool hasQuiz;
   final bool hasAssessment;
-  final bool hasCodingQuestions;
   final bool isCompleted;
   final bool isAccessible;
 
@@ -211,12 +210,6 @@ class RoadmapNode {
   /// The quizzes attached here, straight off the roadmap — enough to name the
   /// quiz and state its timer without opening the node endpoint first.
   final List<Quiz> quizzes;
-
-  /// The coding problems on this node, straight off the roadmap — enough to
-  /// list them and say how many there are. Their `description` and
-  /// `allowed_languages` arrive only from the coding-questions endpoint, which
-  /// the coding screen calls for itself.
-  final List<CodingQuestion> codingQuestions;
 
   const RoadmapNode({
     required this.id,
@@ -232,12 +225,10 @@ class RoadmapNode {
     this.hasTask = false,
     this.hasQuiz = false,
     this.hasAssessment = false,
-    this.hasCodingQuestions = false,
     this.isCompleted = false,
     this.isAccessible = false,
     this.progress,
     this.quizzes = const <Quiz>[],
-    this.codingQuestions = const <CodingQuestion>[],
   });
 
   Quiz? get quiz => quizzes.isEmpty ? null : quizzes.first;
@@ -263,27 +254,19 @@ class RoadmapNode {
   /// 403, which the lesson screen renders as the lock state rather than an error.
   bool get isLocked => !isAccessible;
 
-  LessonKind get kind {
-    if (hasQuiz) return LessonKind.quiz;
-    if (hasTask) return LessonKind.task;
-    if (hasCodingQuestions) return LessonKind.coding;
-    return LessonKind.lesson;
-  }
-
   /// True when opening this means leaving the roadmap. Learning material and
-  /// quizzes stay in the expanded row; a task or coding
-  /// questions each need a screen of their own, and the roadmap refreshes when
-  /// the learner comes back.
-  bool get opensElsewhere => hasTask || hasAssessment || hasCodingQuestions;
+  /// quizzes stay in the expanded row; a task needs a screen of its own, and
+  /// the roadmap refreshes when the learner comes back.
+  bool get opensElsewhere => hasTask || hasAssessment;
 
   /// True when the expanded row has to call the node endpoint before it can
   /// show anything.
   ///
-  /// **Only learning material does.** A quiz arrives complete on the roadmap,
-  /// coding questions come with it too, and an exam node has nothing to
-  /// fetch. A task row needs only `has_task` to offer its button — the task
-  /// screen fetches the detail itself, so asking for it here was a whole
-  /// request spent deciding whether to draw a button.
+  /// **Only learning material does.** A quiz arrives complete on the roadmap
+  /// and an exam node has nothing to fetch. A task row needs only `has_task`
+  /// to offer its button — the task screen fetches the detail itself, so
+  /// asking for it here was a whole request spent deciding whether to draw a
+  /// button.
   bool get needsDetail => hasLearningMaterial;
 
   factory RoadmapNode.fromJson(Map<String, dynamic> json, [int? moduleId]) =>
@@ -301,7 +284,6 @@ class RoadmapNode {
         hasTask: json['has_task'] == true,
         hasQuiz: json['has_quiz'] == true,
         hasAssessment: json['has_assessment'] == true,
-        hasCodingQuestions: json['has_coding_questions'] == true,
         isCompleted: json['is_completed'] == true,
         isAccessible: json['is_accessible'] == true,
         progress: json['progress'] is Map
@@ -316,7 +298,6 @@ class RoadmapNode {
                   Quiz.fromJson(Map<String, dynamic>.from(e)),
             )
             .toList(),
-        codingQuestions: CodingQuestion.listFrom(json['coding_questions']),
       );
 }
 

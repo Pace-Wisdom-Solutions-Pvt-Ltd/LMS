@@ -154,10 +154,55 @@ class SessionProvider extends BaseProvider {
 
   // ── Preferences ─────────────────────────────────────────────────────────
 
+  /// Replaces the learner's record — **and the memberships that came with
+  /// it**.
+  ///
+  /// The membership list is the reason this is not a one-liner. It arrives
+  /// nested under `user.organizations[]`, on the profile fetch as well as on
+  /// login, which is the whole point of [OrgMembership] reading one shape. But
+  /// [organizations] used to be written only by [startSession] and [hydrate],
+  /// so an org added on the web landed in `_user` and was invisible to
+  /// everything that matters: [canSwitchOrg] stayed false so Profile offered
+  /// no switch, and [selectOrg] would have refused the new org as "not a
+  /// membership" even if something had asked for it. Signing out and in was
+  /// the only way to see it.
+  ///
+  /// Adopted only when the payload actually carries memberships. An
+  /// edit-profile save builds its [AppUser] with `copyWith`, so the list is
+  /// already right there — but a response that simply omits the key must not
+  /// empty the picker.
   Future<void> setUser(AppUser value) async {
     _user = value;
     await AuthTokenStore.saveUser(value.toJson());
+
+    if (value.organizations.isNotEmpty) {
+      _organizations = _ordered(value.organizations);
+      await _storeOrgs(_organizations);
+      await _dropOrgIdIfNoLongerAMember();
+    }
+
     notifyListeners();
+  }
+
+  /// Clears the active org when the refreshed memberships no longer include
+  /// it — the account was removed from it elsewhere.
+  ///
+  /// Only possible now that the list can change mid-session. Staying scoped to
+  /// it would 403 every request on the next screen, so it falls back the way
+  /// [startSession] does: one membership left is chosen silently, several
+  /// leaves the picker to decide.
+  Future<void> _dropOrgIdIfNoLongerAMember() async {
+    final int? current = _orgId;
+    if (current == null) return;
+    if (_organizations.any((OrgMembership o) => o.orgId == current)) return;
+
+    appLogPrint('Org $current is no longer a membership', tag: 'AUTH');
+    if (_organizations.length == 1) {
+      await _setOrgId(_organizations.first.orgId);
+    } else {
+      _orgId = null;
+      await AuthTokenStore.clearOrgId();
+    }
   }
 
   /// Theme mode is independent of org branding — switching it must never

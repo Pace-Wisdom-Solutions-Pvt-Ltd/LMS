@@ -11,6 +11,7 @@
 
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lms/utils/app_exports.dart';
 
@@ -515,6 +516,93 @@ void main() {
       await pumpTask(tester);
 
       expect(find.text(strings.taskResubmit), findsNothing);
+    });
+  });
+
+  // What the one file picker is told to accept, and what the field calls it.
+  //
+  // The three flags are independent and the backend sends any combination, so
+  // this is a truth table rather than three cases. `allow_file` means *any*
+  // file and swallows the narrower two; anything else is a real narrowing and
+  // the picker is filtered, so a PDF-only task cannot take a .docx.
+  group('the file field follows the allow_* flags', () {
+    TaskDetail taskWith({
+      bool file = false,
+      bool pdf = false,
+      bool screenshot = false,
+    }) => TaskDetail.fromJson(<String, dynamic>{
+      'id': 1,
+      // Something unrelated stays set, so `hasNoStatedInputs` is not what is
+      // being measured except where a case says so.
+      'allow_link': true,
+      'allow_file': file,
+      'allow_pdf': pdf,
+      'allow_screenshot': screenshot,
+    });
+
+    test('a file-only task takes anything, and says File', () {
+      final TaskDetail t = taskWith(file: true);
+      expect(t.filePickerSpec.type, FileType.any);
+      expect(t.filePickerSpec.extensions, isNull);
+      expect(t.fileLabel(strings), 'File');
+    });
+
+    test('a PDF-only task is filtered to pdf, and says PDF', () {
+      final TaskDetail t = taskWith(pdf: true);
+      expect(t.filePickerSpec.type, FileType.custom);
+      expect(t.filePickerSpec.extensions, <String>['pdf']);
+      expect(t.fileLabel(strings), 'PDF');
+    });
+
+    test('a screenshot-only task asks for images, and says Screenshot', () {
+      final TaskDetail t = taskWith(screenshot: true);
+      expect(t.filePickerSpec.type, FileType.image);
+      expect(
+        t.filePickerSpec.extensions,
+        isNull,
+        reason: 'FileType.image needs no extension list',
+      );
+      expect(t.fileLabel(strings), 'Screenshot');
+    });
+
+    test('File with PDF widens back to any, and reads File/PDF', () {
+      final TaskDetail t = taskWith(file: true, pdf: true);
+      expect(t.filePickerSpec.type, FileType.any);
+      expect(t.fileLabel(strings), 'File/PDF');
+    });
+
+    test('PDF with Screenshot filters to both, and reads PDF/Screenshot', () {
+      final TaskDetail t = taskWith(pdf: true, screenshot: true);
+      final ({FileType type, List<String>? extensions}) spec = t.filePickerSpec;
+
+      expect(
+        spec.type,
+        FileType.custom,
+        reason: 'neither FileType.image nor a pdf-only filter covers both',
+      );
+      expect(spec.extensions, contains('pdf'));
+      expect(spec.extensions, contains('png'));
+      expect(t.fileLabel(strings), 'PDF/Screenshot');
+    });
+
+    test('all three read widest first', () {
+      expect(
+        taskWith(file: true, pdf: true, screenshot: true).fileLabel(strings),
+        'File/PDF/Screenshot',
+      );
+    });
+
+    test('a task that states nothing still offers a plain File', () {
+      final TaskDetail t = TaskDetail.fromJson(<String, dynamic>{'id': 1});
+
+      expect(t.hasNoStatedInputs, isTrue);
+      expect(t.offersFile, isTrue);
+      expect(t.filePickerSpec.type, FileType.any);
+      expect(
+        t.fileLabel(strings),
+        'File',
+        reason: 'the label never lists a kind the task did not ask for',
+      );
     });
   });
 }

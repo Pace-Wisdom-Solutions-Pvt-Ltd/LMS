@@ -132,7 +132,7 @@ class AppButton extends StatelessWidget {
           // `Align` with a `heightFactor`, not `Container.alignment`: an
           // alignment with no fixed height takes *all* the height it is
           // offered, which in a `bottomNavigationBar` is the whole screen —
-          // the coding screen's body was squeezed to nothing. The factor
+          // a sheet's body was squeezed to nothing. The factor
           // pins the box to its content, and the 54 floor above does the
           // rest.
           child: Align(

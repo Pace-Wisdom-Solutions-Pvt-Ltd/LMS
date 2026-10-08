@@ -63,11 +63,15 @@ class _TaskViewState extends State<_TaskView> {
     super.dispose();
   }
 
-  Future<void> _pickFile(TaskViewModel vm) async {
+  Future<void> _pickFile(TaskViewModel vm, TaskDetail task) async {
     try {
-      // file_picker 13 returns the list directly, and an empty one on cancel.
-      final List<PlatformFile> picked = await FilePicker.pickFiles();
-      final PlatformFile? file = picked.firstOrNull;
+      // One submission takes one file, and the task says which kinds of it.
+      final ({FileType type, List<String>? extensions}) accepts =
+          task.filePickerSpec;
+      final PlatformFile? file = await FilePicker.pickFile(
+        type: accepts.type,
+        allowedExtensions: accepts.extensions,
+      );
       final String? path = file?.path;
       if (file == null || path == null) return;
       vm.setFile(path, file.name);
@@ -173,7 +177,7 @@ class _TaskViewState extends State<_TaskView> {
                           link: _link,
                           paragraph: _paragraph,
                           code: _code,
-                          onPickFile: () => _pickFile(vm),
+                          onPickFile: () => _pickFile(vm, task),
                           onSubmit: () => _submit(vm),
                         )
                       : const SizedBox.shrink(),
@@ -209,7 +213,7 @@ class _TaskBrief extends StatelessWidget {
         const SizedBox(height: AppSpace.sm),
         // A brief can run to several paragraphs, and all of it above the form
         // pushes the first field off the screen. Same treatment as the
-        // roadmap's node description and coding's problem statement.
+        // roadmap's node description.
         ReadMoreText(
           task.description.trim(),
           trimLines: 4,
@@ -305,7 +309,7 @@ class _SubmissionForm extends StatelessWidget {
           // The rule only earns its place between two ways of answering.
           if (task.offersLink || task.offersParagraph || task.offersCode)
             const _OrDivider(),
-          _FieldLabel(l10n.taskFileLabel),
+          _FieldLabel(task.fileLabel(l10n)),
           _UploadBox(vm: vm, onTap: onPickFile),
           const SizedBox(height: AppSpace.lg),
         ],

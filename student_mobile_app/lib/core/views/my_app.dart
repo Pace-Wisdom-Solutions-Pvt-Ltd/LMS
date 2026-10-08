@@ -73,12 +73,27 @@ class _AppView extends StatelessWidget {
           // Honour the 1.3x the specs require without letting a 2x system
           // setting destroy every layout, and pin the "No internet" bar to the
           // bottom of every route at once.
+          // The [ColoredBox] is not decoration. A page transition fades the
+          // outgoing and incoming routes at the same time, and for those
+          // frames neither is opaque — so whatever sits behind the navigator
+          // shows through. Nothing did: `MaterialApp` paints no background of
+          // its own, so the exposed layer was the platform's window
+          // background, which is white. Every push and pop flashed white on a
+          // dark theme, and nobody notices on a light one because white is
+          // roughly where it was going anyway.
+          //
+          // `Theme.of` resolves to the selected theme here —
+          // `MaterialApp` wraps `builder` in a `Builder` of its own precisely
+          // so that it can.
           builder: (BuildContext context, Widget? child) => ClampedTextScale(
-            child: Column(
-              children: <Widget>[
-                Expanded(child: child ?? const SizedBox.shrink()),
-                const NoInternetBar(),
-              ],
+            child: ColoredBox(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Column(
+                children: <Widget>[
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                  const NoInternetBar(),
+                ],
+              ),
             ),
           ),
         );

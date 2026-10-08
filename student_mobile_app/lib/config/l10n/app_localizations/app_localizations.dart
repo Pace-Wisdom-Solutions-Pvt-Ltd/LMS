@@ -618,12 +618,6 @@ abstract class AppLocalizations {
   /// **'Task'**
   String get kindTask;
 
-  /// No description provided for @kindCoding.
-  ///
-  /// In en, this message translates to:
-  /// **'Coding'**
-  String get kindCoding;
-
   /// No description provided for @claimCertificate.
   ///
   /// In en, this message translates to:
@@ -774,263 +768,11 @@ abstract class AppLocalizations {
   /// **'This assessment cannot be taken in the app. Open it on the LMS website.'**
   String get nodeAssessmentUnavailable;
 
-  /// No description provided for @openCoding.
-  ///
-  /// In en, this message translates to:
-  /// **'Open coding exercise'**
-  String get openCoding;
-
-  /// No description provided for @codingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Coding practice'**
-  String get codingTitle;
-
-  /// No description provided for @codingProblems.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 problem} other{{count} problems}}'**
-  String codingProblems(int count);
-
-  /// No description provided for @codingProblemOf.
-  ///
-  /// In en, this message translates to:
-  /// **'Problem {index} of {count}'**
-  String codingProblemOf(int index, int count);
-
-  /// No description provided for @codingOpenAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Start coding'**
-  String get codingOpenAction;
-
-  /// No description provided for @codingContinueAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Continue coding'**
-  String get codingContinueAction;
-
-  /// No description provided for @codingNoProblems.
-  ///
-  /// In en, this message translates to:
-  /// **'There are no coding problems on this lesson yet.'**
-  String get codingNoProblems;
-
-  /// No description provided for @codingSolved.
-  ///
-  /// In en, this message translates to:
-  /// **'Solved'**
-  String get codingSolved;
-
-  /// No description provided for @codingStatement.
-  ///
-  /// In en, this message translates to:
-  /// **'Problem'**
-  String get codingStatement;
-
-  /// No description provided for @codingInputFormat.
-  ///
-  /// In en, this message translates to:
-  /// **'Input format'**
-  String get codingInputFormat;
-
-  /// No description provided for @codingOutputFormat.
-  ///
-  /// In en, this message translates to:
-  /// **'Output format'**
-  String get codingOutputFormat;
-
-  /// No description provided for @codingSamples.
-  ///
-  /// In en, this message translates to:
-  /// **'Sample cases'**
-  String get codingSamples;
-
-  /// No description provided for @codingCase.
-  ///
-  /// In en, this message translates to:
-  /// **'Case {index}'**
-  String codingCase(int index);
-
-  /// No description provided for @codingSampleInput.
-  ///
-  /// In en, this message translates to:
-  /// **'Input'**
-  String get codingSampleInput;
-
-  /// No description provided for @codingSampleOutput.
-  ///
-  /// In en, this message translates to:
-  /// **'Expected output'**
-  String get codingSampleOutput;
-
-  /// No description provided for @codingYourOutput.
-  ///
-  /// In en, this message translates to:
-  /// **'Your output'**
-  String get codingYourOutput;
-
-  /// No description provided for @codingOutput.
-  ///
-  /// In en, this message translates to:
-  /// **'Output'**
-  String get codingOutput;
-
-  /// No description provided for @codingLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Language'**
-  String get codingLanguage;
-
-  /// No description provided for @codingEditorLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Your solution'**
-  String get codingEditorLabel;
-
-  /// No description provided for @codingEditorHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write your solution here'**
-  String get codingEditorHint;
-
-  /// No description provided for @codingCustomInput.
-  ///
-  /// In en, this message translates to:
-  /// **'Run with my own input'**
-  String get codingCustomInput;
-
-  /// No description provided for @codingCustomInputHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Input to run against instead of the samples'**
-  String get codingCustomInputHint;
-
-  /// No description provided for @codingRun.
-  ///
-  /// In en, this message translates to:
-  /// **'Run'**
-  String get codingRun;
-
-  /// No description provided for @codingRunning.
-  ///
-  /// In en, this message translates to:
-  /// **'Running…'**
-  String get codingRunning;
-
-  /// No description provided for @codingSubmit.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit'**
-  String get codingSubmit;
-
-  /// No description provided for @codingGrading.
-  ///
-  /// In en, this message translates to:
-  /// **'Grading…'**
-  String get codingGrading;
-
-  /// No description provided for @codingRunNotGraded.
-  ///
-  /// In en, this message translates to:
-  /// **'A run is not graded. Submit when you are happy with it.'**
-  String get codingRunNotGraded;
-
-  /// No description provided for @codingWriteCodeFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Write some code first.'**
-  String get codingWriteCodeFirst;
-
-  /// No description provided for @codingTimeLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'{count}s per case'**
-  String codingTimeLimit(int count);
-
-  /// No description provided for @codingMemoryLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} MB'**
-  String codingMemoryLimit(int count);
-
-  /// No description provided for @codingAccepted.
-  ///
-  /// In en, this message translates to:
-  /// **'Accepted'**
-  String get codingAccepted;
-
-  /// No description provided for @codingNotAccepted.
-  ///
-  /// In en, this message translates to:
-  /// **'Not accepted'**
-  String get codingNotAccepted;
-
-  /// No description provided for @codingCasesPassed.
-  ///
-  /// In en, this message translates to:
-  /// **'{passed} of {total} cases passed'**
-  String codingCasesPassed(int passed, int total);
-
-  /// No description provided for @codingStillGrading.
-  ///
-  /// In en, this message translates to:
-  /// **'Still being graded. Open this again in a moment to see the result.'**
-  String get codingStillGrading;
-
-  /// No description provided for @codingScore.
-  ///
-  /// In en, this message translates to:
-  /// **'Score {score}'**
-  String codingScore(int score);
-
-  /// No description provided for @codingCasePassed.
-  ///
-  /// In en, this message translates to:
-  /// **'Passed'**
-  String get codingCasePassed;
-
-  /// No description provided for @codingCaseFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get codingCaseFailed;
-
-  /// No description provided for @codingError.
-  ///
-  /// In en, this message translates to:
-  /// **'Error'**
-  String get codingError;
-
-  /// No description provided for @codingAcceptedToast.
-  ///
-  /// In en, this message translates to:
-  /// **'Accepted · lesson complete'**
-  String get codingAcceptedToast;
-
-  /// No description provided for @codingAllSolved.
-  ///
-  /// In en, this message translates to:
-  /// **'Every problem on this lesson is solved.'**
-  String get codingAllSolved;
-
-  /// No description provided for @codingStarterLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading starter code…'**
-  String get codingStarterLoading;
-
   /// No description provided for @nothingToOpen.
   ///
   /// In en, this message translates to:
   /// **'There is nothing to open in this lesson yet.'**
   String get nothingToOpen;
-
-  /// No description provided for @openTask.
-  ///
-  /// In en, this message translates to:
-  /// **'Open task'**
-  String get openTask;
 
   /// No description provided for @startQuiz.
   ///
@@ -1038,35 +780,11 @@ abstract class AppLocalizations {
   /// **'Start quiz'**
   String get startQuiz;
 
-  /// No description provided for @openDocument.
-  ///
-  /// In en, this message translates to:
-  /// **'Open document'**
-  String get openDocument;
-
   /// No description provided for @openLink.
   ///
   /// In en, this message translates to:
   /// **'Open link'**
   String get openLink;
-
-  /// No description provided for @autoCompleteNote.
-  ///
-  /// In en, this message translates to:
-  /// **'This lesson completes itself once you reach the end.'**
-  String get autoCompleteNote;
-
-  /// No description provided for @markComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark as complete'**
-  String get markComplete;
-
-  /// No description provided for @lessonCompleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Lesson complete'**
-  String get lessonCompleted;
 
   /// No description provided for @quizSubmit.
   ///
@@ -1218,11 +936,23 @@ abstract class AppLocalizations {
   /// **'// Paste your code here...'**
   String get taskCodeHint;
 
-  /// No description provided for @taskFileLabel.
+  /// No description provided for @taskFileKindFile.
   ///
   /// In en, this message translates to:
-  /// **'PDF / Screenshot / File'**
-  String get taskFileLabel;
+  /// **'File'**
+  String get taskFileKindFile;
+
+  /// No description provided for @taskFileKindPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get taskFileKindPdf;
+
+  /// No description provided for @taskFileKindScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get taskFileKindScreenshot;
 
   /// No description provided for @taskUploadCta.
   ///
