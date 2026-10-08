@@ -305,7 +305,6 @@ void main() {
       AppRoutePaths.task,
       AppRoutePaths.quiz,
       AppRoutePaths.quizResult,
-      AppRoutePaths.coding,
     ]) {
       expect(path, contains(':courseId'));
       expect(path, contains(':moduleId'));

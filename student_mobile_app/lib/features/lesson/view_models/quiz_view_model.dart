@@ -100,7 +100,7 @@ class QuizViewModel extends BaseProvider {
   /// Nullable rather than `_quiz!.questions[_index]`: that read was safe only
   /// because the screen happened to return early on `total == 0` first, which
   /// put the guarantee in the caller and left the model one refactor away from
-  /// throwing. `CodingViewModel.current` has always done it this way.
+  /// throwing.
   QuizQuestion? get current =>
       _index >= 0 && _index < _questions.length ? _questions[_index] : null;
 

@@ -104,11 +104,10 @@ class EditProfileViewModel extends BaseProvider {
   /// here, which is one more step for them and one fewer permission for us.
   Future<void> pickImage() async {
     try {
-      final List<PlatformFile> picked = await FilePicker.pickFiles(
+      final PlatformFile? file = await FilePicker.pickFile(
         type: FileType.image,
         compressionQuality: 85,
       );
-      final PlatformFile? file = picked.firstOrNull;
       final String? path = file?.path;
       if (file == null || path == null) return;
 

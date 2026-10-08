@@ -11,7 +11,9 @@ import 'package:lms/utils/app_exports.dart';
 ///    redirect already knows whether the learner is signed in — otherwise a
 ///    returning learner sees the sign-in screen flash before being bounced on;
 ///  * branding is hydrated from disk here too, so the **first frame is already
-///    in the organization's colours** rather than popping from the default.
+///    in the organization's colours** rather than popping from the default;
+///  * the portrait lock is set before `runApp`, so the first frame cannot be
+///    laid out landscape and then snap upright.
 ///
 /// Everything runs inside [runZonedGuarded] so an uncaught async error is
 /// logged rather than lost.
@@ -19,6 +21,10 @@ Future<void> initApp() async {
   runZonedGuarded<Future<void>>(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Portrait is the app; a fullscreen video is the one thing that widens
+      // it, and it puts this back on the way out. See [AppOrientation].
+      await AppOrientation.lockPortrait();
 
       await AppEnv.load();
       await HiveStorage.init();

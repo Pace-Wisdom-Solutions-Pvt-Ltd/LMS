@@ -15,15 +15,22 @@ applies as a theme, so nothing about how the app looks is compiled in. Switching
 resets the session-scoped state rather than refetching over it.
 
 The learner's path is: **Course → Module → Lesson**, where a lesson can be learning material
-(video, PDF, document, link, text), a **Task** submitted for a trainer to review, a **Quiz**, or
-a **coding** problem. A roadmap screen holds all of it in one place and expands a lesson in
-place; video auto-completes the lesson at 90% watched.
+(video, PDF, document, link, text), a **Task** submitted for a trainer to review, or a **Quiz**.
+A roadmap screen holds all of it in one place and expands a lesson in place; video
+auto-completes the lesson at 90% watched.
 
 Every authenticated account is admitted, whatever its role — a trainer or an admin signing in
 gets the learner UI, with the learner-scoped endpoints returning their (empty) results.
 
-**Phone portrait is the design target.** The desktop and web platform
-folders exist because `flutter create` made them; they are not build targets.
+**Phone portrait is the design target**, and it is enforced rather than
+assumed: `initApp` locks the app to `portraitUp`. The one exception is a video at
+fullscreen, which may rotate — `AppOrientation` holds both sets and each player
+restores the lock when its fullscreen closes. Both native sides stay permissive
+on purpose, because iOS honours a runtime orientation request only within what
+`Info.plist` already allows.
+
+The desktop and web platform folders exist because `flutter create` made them;
+they are not build targets.
 
 ## Requirements
 
@@ -33,18 +40,53 @@ folders exist because `flutter create` made them; they are not build targets.
 | Dart SDK | `^3.13.0`, per `pubspec.yaml`                                            |
 | Android  | Android Studio + an SDK;`minSdk`/`targetSdk` follow the Flutter defaults |
 | iOS      | Xcode and CocoaPods; a macOS host                                            |
+| Device   | an emulator, a simulator or a real phone — `flutter run` needs one attached   |
 
 ## Running it
 
 ```bash
 cp .env.example .env   # once per clone, then set API_BASE_URL in it
 flutter pub get
+
+cd ios && pod install && cd ..   # iOS only, and only after `pub get`
+
 flutter run
 ```
 
 `cp .env.example .env` is not optional — the build fails without the file, and the error comes
 from asset bundling rather than at runtime. `flutter run` needs no `-t` flag: there is one entry
-point. To point a run at another backend without touching `.env`:
+point.
+
+**Something has to be connected before `flutter run`** — an Android emulator, an iOS simulator,
+or a phone plugged in with developer mode on. With nothing attached the run stops rather than
+building:
+
+```bash
+flutter devices            # what Flutter can currently see
+flutter emulators          # ...and what it could start
+flutter emulators --launch <emulator_id>
+flutter run -d <device_id> # pick one when several are attached
+```
+
+`localhost` in `.env` means the *device's* own localhost, not your machine's. An Android
+emulator reaches the host at **`10.0.2.2`**, an iOS simulator shares the host's network so
+`localhost` works there, and a real phone needs your machine's **LAN IP** — with the backend
+bound to it (`python manage.py runserver 0.0.0.0:8000`) and both on the same network.
+
+**`pod install` for iOS, and in that order.** `ios/Pods/` and `Podfile.lock` are both
+gitignored, so a fresh clone has no pods at all. It has to run *after* `flutter pub get`, because
+that is what generates `ios/Flutter/Generated.xcconfig` — also gitignored — which the `Podfile`
+reads to find the Flutter SDK and the plugin list. Run it first and CocoaPods stops with:
+
+```
+FLUTTER_ROOT not found in …/Flutter/Generated.xcconfig. Try deleting Generated.xcconfig, then run flutter pub get
+```
+
+Re-run `pod install` whenever a dependency with a native side is added or upgraded in
+`pubspec.yaml`. Android needs no equivalent step, and neither does a macOS host building only
+for Android.
+
+To point a run at another backend without touching `.env`:
 
 ```bash
 flutter run --dart-define=API_BASE_URL=https://lms.example.com
@@ -79,7 +121,7 @@ lib/
   init_app.dart     — boot order: env, Hive, token store, session, branding, then runApp
 
   config/
-    env/            — API base URL resolution (dart-define → .env)
+    app_env/        — API base URL resolution (dart-define → .env)
     l10n/           — app_en.arb and the generated AppLocalizations
     theme/          — palette, per-org brand, spacing/radius/motion tokens, ThemeData
     routes/         — route names and paths, the GoRouter, the route observer
@@ -90,7 +132,8 @@ lib/
     models/         — user, organization membership, organization branding
     providers/      — session, branding, reachability, the tab refresher
     repository/     — organization lookups (branding)
-    services/       — Dio client, auth interceptor, ApiResponse, endpoint list, token store
+    services/       — Dio client, auth interceptor, ApiResponse, endpoint list, token store,
+                      file saver, orientation policy
     local_storage/  — the Hive wrapper and its typed keys
     views/          — the root widget and the four-tab shell
     widgets/        — shared UI: top bar, buttons, sheets, text fields, skeletons,
@@ -121,7 +164,7 @@ Three conventions that are not obvious from the tree:
   discards every session-scoped view model with it.
 
 Other top-level files: `l10n.yaml` (points `flutter gen-l10n` at `lib/config/l10n/`),
-`analysis_options.yaml`, `assets/app_logo.png` (the one image asset), and `test/` — the test
+`analysis_options.yaml`, `assets/` (two logo files, see below), and `test/` — the test
 suite, including `test/support/fake_api.dart`, a fake Dio adapter the widget tests serve
 responses from.
 
@@ -168,6 +211,10 @@ flutter build ipa --release --dart-define=API_BASE_URL=https://lms.example.com
 # → build/ios/ipa/*.ipa, plus an Xcode archive to upload with Transporter
 ```
 
+Run `pod install` first on a clean machine (see [Running it](#running-it)).
+`ios/Runner.xcworkspace` is committed, but it references a `Pods` project that is not — so
+opening it before the pods exist fails to build rather than telling you what is missing.
+
 Signing has to be configured first: open `ios/Runner.xcworkspace` in Xcode, select the **Runner**
 target → **Signing & Capabilities**, and set your team and provisioning profile. `flutter build ipa --export-method …` covers ad-hoc and enterprise distribution.
 
@@ -201,19 +248,31 @@ settle it before the first release.
 
 ## Changing the app icon
 
-Both platforms' launcher icons are **generated from one file**, `assets/app_logo.png`. The same
-file is also the in-app mark, rendered by the `AppIcon` widget.
+There are **two** logo files, and the difference between them is the alpha channel:
+
+| File | Used for | Why |
+| ---- | -------- | --- |
+| `assets/app_logo.png` | both platforms' launcher icons | a launcher icon is matted onto a flat background — iOS rejects an alpha channel outright |
+| `assets/app_logo_transparent.png` | the in-app mark, via the `AppIcon` widget | the matte would otherwise be a visible tile wherever the mark sits on the app's own surface |
+
+Keep the two in step: they are the same artwork, and only one of them is the
+one a learner sees inside the app.
 
 ```bash
 # 1. Replace assets/app_logo.png — square, ideally 1024×1024, with some padding
-#    of its own so the Android adaptive mask does not crop it.
+#    of its own so the Android adaptive mask does not crop it. Replace
+#    assets/app_logo_transparent.png with the same artwork, alpha intact.
 
-# 2. Regenerate both platforms' icons.
+# 2. Regenerate both platforms' icons. Only app_logo.png feeds this.
 dart run flutter_launcher_icons
 
 # 3. Rebuild. Android caches launcher icons aggressively, so uninstall first if
 #    the old one persists.
 ```
+
+> The generator rewrites `mipmap-anydpi-v26/ic_launcher.xml` from scratch and
+> **drops its SPDX header**. Put the header back before committing, or
+> `reuse lint` fails.
 
 That writes `android/app/src/main/res/mipmap-*/` and
 `ios/Runner/Assets.xcassets/AppIcon.appiconset/` — generated output, committed, and not worth
@@ -225,9 +284,8 @@ padding is not cropped by Android's adaptive mask, and `remove_alpha_ios: true`,
 rejects an app icon with an alpha channel. If the icon needs a different treatment per platform,
 `image_path_android` / `image_path_ios` take their own files.
 
-The in-app mark is separate from the launcher icon in one respect: `AppIcon` picks its decoder
-from the file extension, so swapping `app_logo.png` for an SVG needs no code change — but
-`flutter_launcher_icons` needs a raster image, so keep a PNG for the launcher.
+`AppIcon` picks its decoder from the file extension, so pointing it at an SVG needs no code
+change — but `flutter_launcher_icons` needs a raster image, so the launcher file stays a PNG.
 
 What the in-app mark is **not** is the organization's logo. Anywhere an organization is known,
 `BrandMark` shows that organization's logo, falling back to a monogram tile and only then to the

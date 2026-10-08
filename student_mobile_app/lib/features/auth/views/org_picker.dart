@@ -19,7 +19,10 @@ Future<int?> showOrgPicker(BuildContext context, {bool dismissible = true}) {
   final List<OrgMembership> orgs = context
       .read<SessionProvider>()
       .organizations;
-  final Widget content = _OrgPickerContent(orgs: orgs);
+  final Widget content = _OrgPickerContent(
+    orgs: orgs,
+    isDismissible: dismissible,
+  );
 
   if (context.prefersDialogOverSheet) {
     return showDialog<int>(
@@ -45,9 +48,10 @@ Future<int?> showOrgPicker(BuildContext context, {bool dismissible = true}) {
 }
 
 class _OrgPickerContent extends StatelessWidget {
-  const _OrgPickerContent({required this.orgs});
+  const _OrgPickerContent({required this.orgs, required this.isDismissible});
 
   final List<OrgMembership> orgs;
+  final bool isDismissible;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +67,7 @@ class _OrgPickerContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            if (!isDismissible) SizedBox(height: AppSpace.sectionGap),
             Text(context.l10n.chooseOrgTitle, style: context.text.titleLarge),
             const SizedBox(height: AppSpace.xs),
             Text(
@@ -117,12 +122,7 @@ class _OrgTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(
-                      org.displayName,
-                      style: context.text.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(org.displayName, style: context.text.titleMedium),
                     if (roles.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 4),
                       // What the person is in this organization. Shown because

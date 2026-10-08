@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:file_picker/file_picker.dart';
 import 'package:lms/utils/app_exports.dart';
 
 /// The task attached to a lesson: what the learner submits for a trainer.
@@ -23,7 +24,8 @@ class TaskDetail {
 
   /// `allow_pdf` and `allow_screenshot` are file uploads with the type
   /// narrowed. The app has one file picker, so they widen [offersFile] rather
-  /// than adding inputs of their own.
+  /// than adding inputs of their own — and narrow what it will accept, through
+  /// [filePickerSpec].
   final bool allowPdf;
   final bool allowScreenshot;
 
@@ -64,6 +66,71 @@ class TaskDetail {
   bool get offersCode => allowCode || hasNoStatedInputs;
   bool get offersFile =>
       allowFile || allowPdf || allowScreenshot || hasNoStatedInputs;
+
+  /// True when the task names no narrower kind, so anything is fair game.
+  ///
+  /// `allow_file` *is* "any file", and a task with no flags at all is treated
+  /// as permissive by [hasNoStatedInputs]; either way the picker is not
+  /// filtered.
+  bool get _acceptsAnyFile => allowFile || hasNoStatedInputs;
+
+  /// Images the picker should offer when it cannot simply ask for
+  /// [FileType.image] — a screenshot alongside a PDF, which needs one custom
+  /// filter covering both.
+  static const List<String> _imageExtensions = <String>[
+    'jpg',
+    'jpeg',
+    'png',
+    'heic',
+    'webp',
+  ];
+
+  /// What the one file picker should accept for this task.
+  ///
+  /// The flags are independent and arrive in any combination, so the rule is:
+  /// **any file wins**, and otherwise the narrowing is real and the picker is
+  /// told about it. A learner whose task takes only a PDF should find that out
+  /// in the file browser, not after uploading a `.docx` and waiting for a
+  /// trainer to reject it.
+  ///
+  /// `extensions` is non-null only for [FileType.custom], which is the only
+  /// type `file_picker` reads it for.
+  ({FileType type, List<String>? extensions}) get filePickerSpec {
+    if (_acceptsAnyFile) {
+      return (type: FileType.any, extensions: null);
+    }
+    if (allowPdf && allowScreenshot) {
+      return (
+        type: FileType.custom,
+        extensions: <String>['pdf', ..._imageExtensions],
+      );
+    }
+    if (allowPdf) {
+      return (type: FileType.custom, extensions: <String>['pdf']);
+    }
+    if (allowScreenshot) {
+      // Screenshot only: the picker has a type for it, so no extension list.
+      return (type: FileType.image, extensions: null);
+    }
+    return (type: FileType.any, extensions: null);
+  }
+
+  /// The field's label: the kinds this task takes, as the learner reads them —
+  /// `File`, `PDF`, `Screenshot`, or `File/PDF` and so on when it takes
+  /// several.
+  ///
+  /// Ordered widest first, so a combination reads `File/PDF` rather than
+  /// `PDF/File`, and never lists a kind the task did not ask for.
+  String fileLabel(AppLocalizations l10n) {
+    final List<String> kinds = <String>[
+      if (allowFile) l10n.taskFileKindFile,
+      if (allowPdf) l10n.taskFileKindPdf,
+      if (allowScreenshot) l10n.taskFileKindScreenshot,
+    ];
+    // Nothing stated, so the form is offering a file on the permissive path.
+    if (kinds.isEmpty) return l10n.taskFileKindFile;
+    return kinds.join('/');
+  }
 
   factory TaskDetail.fromJson(Map<String, dynamic> json) => TaskDetail(
     id: int.tryParse('${json['id']}') ?? -1,

@@ -75,7 +75,7 @@ abstract final class AppRoutes {
     // straight to the sign-in screen.
     refreshListenable: session,
     redirect: (BuildContext context, GoRouterState state) =>
-        _guard(session, state),
+        redirectFor(session, state.matchedLocation),
     routes: <RouteBase>[
       GoRoute(
         path: AppRoutePaths.splash,
@@ -115,21 +115,8 @@ abstract final class AppRoutes {
           ),
         ),
       ),
-      GoRoute(
-        path: AppRoutePaths.lesson,
-        name: AppRouteNames.lesson,
-        parentNavigatorKey: _rootKey,
-        pageBuilder: (_, GoRouterState s) => _page(
-          s,
-          LessonScreen(
-            courseId: _int(s.pathParameters['courseId']),
-            moduleId: _int(s.pathParameters['moduleId']),
-            nodeId: _int(s.pathParameters['nodeId']),
-          ),
-        ),
-      ),
-      // Task, quiz, quiz result and coding all take the **ids of the node**
-      // and fetch for themselves. None of them is handed a model through
+      // Task, quiz and quiz result all take the **ids of the node** and
+      // fetch for themselves. None of them is handed a model through
       // `extra`: a screen that can only be reached with a payload in hand is
       // not deep-linkable, cannot survive a reload, and renders whatever the
       // previous screen happened to be holding rather than what the server
@@ -170,24 +157,6 @@ abstract final class AppRoutes {
             courseId: _int(s.pathParameters['courseId']),
             moduleId: _int(s.pathParameters['moduleId']),
             nodeId: _int(s.pathParameters['nodeId']),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutePaths.coding,
-        name: AppRouteNames.coding,
-        parentNavigatorKey: _rootKey,
-        pageBuilder: (_, GoRouterState s) => _page(
-          s,
-          CodingScreen(
-            courseId: _int(s.pathParameters['courseId']),
-            moduleId: _int(s.pathParameters['moduleId']),
-            nodeId: _int(s.pathParameters['nodeId']),
-            // The coding-questions endpoint names each problem but never the
-            // node they hang off, so the lesson's own title rides along as a
-            // display hint. Absent — a deep link — the screen falls back to
-            // its generic heading rather than showing nothing.
-            nodeTitle: s.uri.queryParameters['title'] ?? '',
           ),
         ),
       ),
@@ -254,9 +223,10 @@ abstract final class AppRoutes {
   /// The organization picker and the branding fetch happen imperatively after
   /// sign-in. Putting either here would make redirects loop and turn every
   /// navigation into a policy evaluation.
-  static String? _guard(SessionProvider session, GoRouterState state) {
-    final String location = state.matchedLocation;
-
+  /// Takes a plain location rather than a [GoRouterState] so it can be
+  /// exercised without a router attached to a widget tree — `GoRouter.state`
+  /// throws until one is.
+  static String? redirectFor(SessionProvider session, String location) {
     // The splash screen decides where to go itself.
     if (location == AppRoutePaths.splash) return null;
 
@@ -264,7 +234,21 @@ abstract final class AppRoutes {
     final bool isPublic = AppRoutePaths.public.contains(location);
 
     if (!loggedIn && !isPublic) return AppRoutePaths.signIn;
-    if (loggedIn && location == AppRoutePaths.signIn) return AppRoutePaths.home;
+
+    // A signed-in learner on the sign-in screen is on their way off it — but
+    // **not while they still owe an organization choice**.
+    //
+    // `startSession` notifies before the pick is made, and the session is this
+    // router's `refreshListenable`, so this guard runs on that notification.
+    // Returning Home there pulled the sign-in route out from under the picker
+    // that `SignInScreen` was about to show over it; the sheet came back
+    // `null`, which that code reads as "cancelled" and answers by signing the
+    // learner out — landing them back on sign-in a frame after reaching Home.
+    // Accounts with one organization never saw it, because `startSession`
+    // chooses that one itself and nothing is owed.
+    if (loggedIn && location == AppRoutePaths.signIn) {
+      return session.needsOrgChoice ? null : AppRoutePaths.home;
+    }
     return null;
   }
 

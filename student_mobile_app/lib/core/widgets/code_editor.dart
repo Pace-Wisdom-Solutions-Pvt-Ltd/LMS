@@ -3,18 +3,33 @@
 
 import 'package:lms/utils/app_exports.dart';
 
-/// `.editor` — the dark code box, with a line-number gutter.
+/// `.editor` — the black code box, with a line-number gutter ruled off from
+/// the code.
 ///
-/// Shared by the task screen's code answer and the coding practice editor, so
-/// the two cannot drift apart. The colours come from [AppPalette] and are
+/// Used by the task screen's code answer. The colours come from [AppPalette]
+/// and are
 /// deliberately fixed in both themes: this is the one place in the app where
 /// whitespace carries meaning, and an org's brand hex has no business in it.
+///
+/// **`filled: false` is load-bearing.** The app's `inputDecorationTheme` sets
+/// `filled: true` with the theme's `surface`, and an `InputDecoration` that
+/// leaves `filled` unset inherits it — which painted a pale panel over the
+/// black in light mode and left only the gutter and the padding dark.
 ///
 /// `TextField` soft-wraps, which means the gutter can only count **logical**
 /// lines, not visual rows — a long line that wraps makes the numbers drift
 /// below it. Horizontal scrolling of a multi-line field is not something
 /// Flutter's text field offers, so wrapping is the lesser evil, and the gutter
 /// is optional for exactly that reason.
+///
+/// **An editor with a gutter must not cap [maxLines].** The gutter is a column
+/// of numbers *beside* the field, not inside its viewport, so it cannot scroll
+/// with it: cap the field and it scrolls its own content under a gutter that
+/// keeps growing, and from the 25th line on every number sits beside the wrong
+/// code. So a numbered editor grows with what is typed and the page it sits in
+/// does the scrolling — which is also the better phone behaviour, there being
+/// no second scrollable to fight. [showLineNumbers] `false` is what a bounded
+/// box uses.
 class CodeEditor extends StatelessWidget {
   const CodeEditor({
     super.key,
@@ -22,17 +37,24 @@ class CodeEditor extends StatelessWidget {
     required this.hint,
     this.onChanged,
     this.minLines = 8,
-    this.maxLines = 24,
+    this.maxLines,
     this.readOnly = false,
     this.showLineNumbers = true,
     this.semanticLabel,
-  });
+  }) : assert(
+         !showLineNumbers || maxLines == null,
+         'A gutter cannot scroll with the field, so a numbered editor must be '
+         'free to grow. Pass showLineNumbers: false to cap the height.',
+       );
 
   final TextEditingController controller;
   final String hint;
   final ValueChanged<String>? onChanged;
   final int minLines;
-  final int maxLines;
+
+  /// `null` — the default — grows with the content. Only meaningful without
+  /// [showLineNumbers]; see the class doc.
+  final int? maxLines;
   final bool readOnly;
   final bool showLineNumbers;
   final String? semanticLabel;
@@ -47,7 +69,9 @@ class CodeEditor extends StatelessWidget {
       onChanged: onChanged,
       readOnly: readOnly,
       minLines: minLines,
-      maxLines: maxLines,
+      // Derived rather than passed straight through, so the invariant holds in
+      // release too, where the constructor's assert is gone.
+      maxLines: showLineNumbers ? null : maxLines,
       style: mono,
       // A code field must not be second-guessed: no autocorrect, no
       // capitalizing the first letter of every line, no spell underlines.
@@ -60,6 +84,12 @@ class CodeEditor extends StatelessWidget {
         hintText: hint,
         hintStyle: mono.copyWith(color: AppPalette.codeMuted),
         border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        filled: false,
         isDense: true,
         contentPadding: const EdgeInsets.all(12),
       ),
@@ -70,7 +100,6 @@ class CodeEditor extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.codeBackground,
         borderRadius: BorderRadius.circular(AppRadius.tile),
-        border: Border.all(color: AppPalette.codeLine),
       ),
       child: Semantics(
         label: semanticLabel,
@@ -86,6 +115,12 @@ class CodeEditor extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     _Gutter(controller: controller, style: mono),
+                    // Stretched by the Row, so it runs the editor's full
+                    // height rather than stopping under the last number.
+                    const SizedBox(
+                      width: 1,
+                      child: ColoredBox(color: AppPalette.codeMuted),
+                    ),
                     Expanded(child: field),
                   ],
                 ),
@@ -128,11 +163,10 @@ class _Gutter extends StatelessWidget {
       );
 }
 
-/// A read-only mono box — stdin, expected output, what the judge actually got.
+/// A read-only mono box — code the learner has already submitted, read back.
 ///
-/// Scrolls sideways rather than wrapping: a wrapped output is a different
-/// string from the one the learner is being compared against, and they need to
-/// see which.
+/// Scrolls sideways rather than wrapping: a wrapped line is a different string
+/// from the one that was submitted, and the learner needs to see which.
 class CodeBlock extends StatelessWidget {
   const CodeBlock({
     super.key,

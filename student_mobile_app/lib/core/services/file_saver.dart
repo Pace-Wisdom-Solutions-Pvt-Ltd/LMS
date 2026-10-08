@@ -23,23 +23,28 @@ class SavedFile {
 
 /// Saves downloaded bytes to disk.
 ///
-/// Two steps, because one is not enough on modern Android:
+/// Two steps, because one is not enough on either platform:
 ///
 ///  1. Write to the app's documents directory. This always works, needs no
-///     permission, and gives share and open something to point at. On **iOS**
-///     this is also the end of the story — the Files app lists it, because
-///     `UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace` are set
-///     in Info.plist.
-///  2. On **Android**, export it through the system "Save to" dialog. Scoped
-///     storage (API 29+) blocks a direct write to the public `Download`
-///     folder, so a plain `File(...).writeAsBytes` lands somewhere no file
-///     manager shows. The dialog hands the write to the system, needs no
-///     storage permission, and lets the learner pick the folder — which is
-///     what actually satisfies "download it to my file manager".
+///     permission, and gives share and open something to point at.
+///  2. Export it through the system "Save to" dialog, so the learner chooses
+///     where the file lands. On **Android** scoped storage (API 29+) blocks a
+///     direct write to the public `Download` folder, so a plain
+///     `File(...).writeAsBytes` goes somewhere no file manager shows; the
+///     dialog hands the write to the system and needs no storage permission.
+///     On **iOS** it is a `UIDocumentPickerViewController`, the sheet that
+///     offers Files, iCloud Drive and any installed provider.
+///
+/// Step 2 used to be Android-only, on the grounds that iOS already lists the
+/// app's documents in Files (`UIFileSharingEnabled` and
+/// `LSSupportsOpeningDocumentsInPlace` are set in Info.plist). It does — but
+/// only under *On My iPhone → LMS*, which is not where a learner looks, and
+/// tapping Download and being told "saved" with no say in where is not what
+/// the button appears to offer.
 abstract final class FileSaver {
   /// Saves [bytes] as a PDF named after [fileName].
   ///
-  /// [promptForLocation] runs the Android save dialog. Pass false to save
+  /// [promptForLocation] runs the system save dialog. Pass false to save
   /// quietly — for a share, where the file only needs to exist.
   static Future<SavedFile?> savePdf({
     required Uint8List bytes,
@@ -51,13 +56,20 @@ abstract final class FileSaver {
     final String? localPath = await _writeLocally(bytes, safeName);
     if (localPath == null) return null;
 
-    if (!promptForLocation || !AppPlatform.isAndroid) {
+    if (!promptForLocation) {
+      // No dialog asked for — a share, which only needs the file to exist.
       // iOS documents are visible in the Files app; app-private on Android.
       return SavedFile(path: localPath, isInFileManager: AppPlatform.isIOS);
     }
 
     final String? exported = await _exportViaSystemDialog(localPath, safeName);
-    return SavedFile(path: localPath, isInFileManager: exported != null);
+    return SavedFile(
+      path: localPath,
+      // Cancelling the dialog leaves the local copy, and on iOS that copy is
+      // itself browsable — so the file is findable either way there. On
+      // Android a cancelled export really does leave it app-private.
+      isInFileManager: AppPlatform.isIOS || exported != null,
+    );
   }
 
   static Future<String?> _writeLocally(Uint8List bytes, String fileName) async {
@@ -87,6 +99,8 @@ abstract final class FileSaver {
         params: SaveFileDialogParams(
           sourceFilePath: sourcePath,
           fileName: fileName,
+          // Android only — the iOS picker exports whatever it is handed and
+          // reads no type filter.
           mimeTypesFilter: const <String>['application/pdf'],
         ),
       );

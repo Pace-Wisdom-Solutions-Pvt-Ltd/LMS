@@ -259,6 +259,109 @@ void main() {
     );
   });
 
+  group('memberships refresh with the record', () {
+    /// The profile body, with however many organizations the account now has.
+    Map<String, dynamic> bodyWithOrgs(List<Map<String, dynamic>> orgs) =>
+        <String, dynamic>{...profileBody(), 'organizations': orgs};
+
+    test(
+      'an org added elsewhere reaches the picker without a re-login',
+      () async {
+        final SessionProvider session = await signedIn();
+        expect(
+          session.canSwitchOrg,
+          isFalse,
+          reason: 'login handed it one membership',
+        );
+
+        api.on(
+          ApiEndPoints.user(userId),
+          status: 200,
+          body: bodyWithOrgs(<Map<String, dynamic>>[
+            <String, dynamic>{'org_id': 2, 'name': 'Demo', 'role': 'student'},
+            <String, dynamic>{'org_id': 7, 'name': 'Second', 'role': 'student'},
+            <String, dynamic>{'org_id': 9, 'name': 'Third', 'role': 'teacher'},
+          ]),
+        );
+
+        final ProfileViewModel vm = ProfileViewModel(session: session);
+        addTearDown(vm.dispose);
+        await vm.load();
+
+        // The symptom this fixes: Profile's organization row is only tappable
+        // when there is somewhere to switch to.
+        expect(session.organizations, hasLength(3));
+        expect(session.canSwitchOrg, isTrue);
+
+        // And the new one is selectable — `selectOrg` refuses anything it does
+        // not consider a membership, which it would have done before.
+        expect(await session.selectOrg(7), isTrue);
+      },
+    );
+
+    test('a body that omits organizations leaves the picker alone', () async {
+      final SessionProvider session = await signedIn();
+      final Map<String, dynamic> body = profileBody()..remove('organizations');
+      api.on(ApiEndPoints.user(userId), status: 200, body: body);
+
+      final ProfileViewModel vm = ProfileViewModel(session: session);
+      addTearDown(vm.dispose);
+      await vm.load();
+
+      expect(
+        session.organizations,
+        hasLength(1),
+        reason: 'an absent key is not the same as "no organizations"',
+      );
+    });
+
+    test(
+      'losing the active org drops it rather than 403ing every call',
+      () async {
+        final SessionProvider session = await signedIn();
+        await session.selectOrg(2);
+        expect(session.orgId, 2);
+
+        // Removed from org 2 on the web; two others remain.
+        api.on(
+          ApiEndPoints.user(userId),
+          status: 200,
+          body: bodyWithOrgs(<Map<String, dynamic>>[
+            <String, dynamic>{'org_id': 7, 'name': 'Second', 'role': 'student'},
+            <String, dynamic>{'org_id': 9, 'name': 'Third', 'role': 'student'},
+          ]),
+        );
+
+        final ProfileViewModel vm = ProfileViewModel(session: session);
+        addTearDown(vm.dispose);
+        await vm.load();
+
+        expect(session.orgId, isNull);
+        expect(session.needsOrgChoice, isTrue, reason: 'the picker decides');
+      },
+    );
+
+    test('losing all but one org scopes to the survivor silently', () async {
+      final SessionProvider session = await signedIn();
+      await session.selectOrg(2);
+
+      api.on(
+        ApiEndPoints.user(userId),
+        status: 200,
+        body: bodyWithOrgs(<Map<String, dynamic>>[
+          <String, dynamic>{'org_id': 7, 'name': 'Second', 'role': 'student'},
+        ]),
+      );
+
+      final ProfileViewModel vm = ProfileViewModel(session: session);
+      addTearDown(vm.dispose);
+      await vm.load();
+
+      expect(session.orgId, 7);
+      expect(session.needsOrgChoice, isFalse);
+    });
+  });
+
   group('switching organization', () {
     Future<SessionProvider> withTwoOrgs() async {
       final SessionProvider session = SessionProvider();

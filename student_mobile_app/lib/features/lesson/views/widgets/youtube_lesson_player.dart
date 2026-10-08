@@ -6,14 +6,20 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 /// The YouTube player for a video lesson.
 ///
-/// It owns the **auto-complete contract**: it reports playback position to
-/// [LessonViewModel.onVideoProgress], which fires the completion call once 90%
-/// of the video has been watched. "Mark as complete" stays as a fallback, not
-/// the primary path.
+/// It owns the **auto-complete contract**: it reports playback position
+/// through `onProgress`, and the expanded roadmap row fires the completion
+/// call once 90% of the video has been watched. "Mark as complete" stays as a
+/// fallback, not the primary path.
 ///
 /// Position is polled rather than streamed because the iframe API exposes no
 /// position callback — one read a second is plenty for a 90% threshold and far
 /// cheaper than a tighter loop.
+///
+/// **Fullscreen is where the app's portrait lock is lifted.** v6 draws its own
+/// fullscreen through an `OverlayPortal` and deliberately makes no
+/// `SystemChrome` calls, so without [YoutubePlayerController.setFullScreenListener]
+/// the maximize button would give a bigger portrait video and no way to turn
+/// the phone.
 class YoutubeLessonPlayer extends StatefulWidget {
   const YoutubeLessonPlayer({
     super.key,
@@ -46,6 +52,13 @@ class _YoutubeLessonPlayerState extends State<YoutubeLessonPlayer> {
         showFullscreenButton: true,
       ),
     )..loadVideo(widget.url);
+    _controller.setFullScreenListener((bool fullscreen) {
+      unawaited(
+        fullscreen
+            ? AppOrientation.allowVideoFullscreen()
+            : AppOrientation.lockPortrait(),
+      );
+    });
     _poll = Timer.periodic(const Duration(seconds: 1), (_) => _readPosition());
   }
 
@@ -69,6 +82,9 @@ class _YoutubeLessonPlayerState extends State<YoutubeLessonPlayer> {
   void dispose() {
     _poll?.cancel();
     _controller.close();
+    // Leaving the lesson while fullscreen — a back gesture, a session expiry —
+    // must not strand the app in landscape.
+    unawaited(AppOrientation.lockPortrait());
     super.dispose();
   }
 

@@ -53,7 +53,7 @@ export 'package:readmore/readmore.dart';
 export 'package:lms/config/l10n/app_localizations/app_localizations.dart';
 
 // ── Config ────────────────────────────────────────────────────────────────────
-export 'package:lms/config/env/app_env.dart';
+export 'package:lms/config/app_env/app_env.dart';
 export 'package:lms/config/providers/app_providers.dart';
 export 'package:lms/config/routes/app_route_names.dart';
 export 'package:lms/config/routes/app_routes.dart';
@@ -76,6 +76,7 @@ export 'package:lms/core/providers/session_provider.dart';
 export 'package:lms/core/providers/tab_refresher.dart';
 export 'package:lms/core/repository/org_repository.dart';
 export 'package:lms/core/services/api_client.dart';
+export 'package:lms/core/services/app_orientation.dart';
 export 'package:lms/core/services/api_endpoints.dart';
 export 'package:lms/core/services/api_helper.dart';
 export 'package:lms/core/services/api_interceptor.dart';
@@ -96,7 +97,6 @@ export 'package:lms/core/widgets/app_text_field.dart';
 export 'package:lms/core/widgets/brand_mark.dart';
 export 'package:lms/core/widgets/choice_indicator.dart';
 export 'package:lms/core/widgets/code_editor.dart';
-export 'package:lms/core/widgets/phase_placeholder.dart';
 
 // ── Features ──────────────────────────────────────────────────────────────────
 export 'package:lms/features/auth/models/login_outcome.dart';
@@ -121,19 +121,13 @@ export 'package:lms/features/home/repository/dashboard_repository.dart';
 export 'package:lms/features/home/view_models/dashboard_view_model.dart';
 export 'package:lms/features/home/views/home_screen.dart';
 export 'package:lms/features/home/views/widgets/home_charts.dart';
-export 'package:lms/features/lesson/models/coding.dart';
 export 'package:lms/features/lesson/models/lesson_node.dart';
 export 'package:lms/features/lesson/models/quiz.dart';
 export 'package:lms/features/lesson/models/task.dart';
-export 'package:lms/features/lesson/repository/coding_repository.dart';
 export 'package:lms/features/lesson/repository/lesson_repository.dart';
-export 'package:lms/features/lesson/view_models/coding_view_model.dart';
-export 'package:lms/features/lesson/view_models/lesson_view_model.dart';
 export 'package:lms/features/lesson/view_models/quiz_result_view_model.dart';
 export 'package:lms/features/lesson/view_models/quiz_view_model.dart';
 export 'package:lms/features/lesson/view_models/task_view_model.dart';
-export 'package:lms/features/lesson/views/coding_screen.dart';
-export 'package:lms/features/lesson/views/lesson_screen.dart';
 export 'package:lms/features/lesson/views/widgets/youtube_lesson_player.dart';
 export 'package:lms/features/lesson/views/quiz_screen.dart';
 export 'package:lms/features/lesson/views/quiz_result_screen.dart';

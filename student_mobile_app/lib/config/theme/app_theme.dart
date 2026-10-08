@@ -174,13 +174,19 @@ abstract final class AppTheme {
           codeBackground: AppPalette.codeBackground,
         ),
       ],
-      pageTransitionsTheme: const PageTransitionsTheme(
+      // `fillColor` is explicit because the default is `canvasColor`, which
+      // Material 3 derives from `colorScheme.surface` — the *card* colour, a
+      // shade off the page it is covering. The transition should fill with the
+      // background it sits on.
+      pageTransitionsTheme: PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
           TargetPlatform.android: SharedAxisPageTransitionsBuilder(
             transitionType: SharedAxisTransitionType.horizontal,
+            fillColor: bg,
           ),
           TargetPlatform.iOS: SharedAxisPageTransitionsBuilder(
             transitionType: SharedAxisTransitionType.horizontal,
+            fillColor: bg,
           ),
         },
       ),

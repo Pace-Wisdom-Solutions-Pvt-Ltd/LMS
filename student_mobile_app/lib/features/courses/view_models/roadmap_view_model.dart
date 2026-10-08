@@ -103,8 +103,8 @@ class RoadmapViewModel extends BaseProvider {
     setState(ViewState.success);
   }
 
-  /// Reloads after the learner comes back from a task, quiz or
-  /// coding screen, where completion happened out of this screen's sight.
+  /// Reloads after the learner comes back from a task or quiz screen, where
+  /// completion happened out of this screen's sight.
   ///
   /// The open row's cached detail is dropped with it: its completion state and
   /// its task status are exactly what may have changed.

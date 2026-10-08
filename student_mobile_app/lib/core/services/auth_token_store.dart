@@ -87,6 +87,13 @@ abstract final class AuthTokenStore {
     await HiveStorage.store(HSKeys.orgId, value);
   }
 
+  /// Forgets the active organization without ending the session — the account
+  /// was removed from it, so the next sign-in must not scope back to it.
+  static Future<void> clearOrgId() async {
+    orgId = null;
+    await HiveStorage.remove(HSKeys.orgId);
+  }
+
   static Future<void> saveLangCode(String code) async {
     langCode = code;
     await HiveStorage.store(HSKeys.langCode, code);
