@@ -45,13 +45,20 @@ def _get_unique_cleaned_labels(source):
 
 def reorder_nodes(module_id):
     """
-    Reorder all active nodes in a module based on their current sequence_order.
+    Reorder all active nodes in a module: nodes without a chapter first, then
+    each chapter's nodes in chapter order, each group by its sequence_order.
     Maintains a linear chain where each node's prerequisite_node is set to the
-    node immediately preceding it in sequence_order.
+    node immediately preceding it.
     """
+    from django.db.models import F
     from curriculum.models import Node
 
-    nodes = list(Node.objects.filter(module_id=module_id, is_deleted=False).order_by('sequence_order', '-updated_at', 'id'))
+    nodes = list(
+        Node.objects.filter(module_id=module_id, is_deleted=False).order_by(
+            F('chapter__sequence_order').asc(nulls_first=True), 'chapter_id',
+            'sequence_order', 'id',
+        )
+    )
     if not nodes:
         return
 
@@ -73,3 +80,47 @@ def reorder_nodes(module_id):
                 node.save(update_fields=['sequence_order', 'prerequisite_node'])
 
 
+
+def reorder_chapters(module_id):
+    """Renumber a module's active chapters 1..n, keeping their current order."""
+    from curriculum.models import Chapter
+
+    chapters = Chapter.objects.filter(module_id=module_id, is_deleted=False).order_by('sequence_order', 'id')
+    for i, chapter_id in enumerate(chapters.values_list('id', flat=True), start=1):
+        # queryset update() skips Chapter.save(), which would call back into here
+        Chapter.objects.filter(id=chapter_id).exclude(sequence_order=i).update(sequence_order=i)
+
+
+def next_sequence_order(queryset):
+    """The sequence_order that places a new row after every existing one."""
+    from django.db.models import Max
+
+    return (queryset.aggregate(m=Max('sequence_order'))['m'] or 0) + 1
+
+
+def apply_node_order(module_id, node_ids):
+    """
+    Put the given nodes of a module in the listed order, in one transaction.
+
+    The listed nodes swap among the positions they already occupy, so a subset
+    (e.g. one chapter's items) is reordered without moving anything else.
+    Chapter order still wins, so nodes only change places within a chapter.
+    Returns False if an id is repeated or is not an active node of the module.
+    """
+    from django.db import transaction
+    from curriculum.models import Node
+
+    if len(node_ids) != len(set(node_ids)):
+        return False
+
+    with transaction.atomic():
+        reorder_nodes(module_id)  # normalise to distinct 1..n positions first
+        nodes = Node.objects.select_for_update().filter(module_id=module_id, is_deleted=False, id__in=node_ids)
+        slots = sorted(nodes.values_list('sequence_order', flat=True))
+        if len(slots) != len(node_ids):
+            return False
+        # update() skips Node.save(), so the module is re-chained once at the end.
+        for slot, node_id in zip(slots, node_ids):
+            Node.objects.filter(id=node_id).update(sequence_order=slot)
+        reorder_nodes(module_id)
+    return True

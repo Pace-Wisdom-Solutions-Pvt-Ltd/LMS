@@ -10,23 +10,25 @@ import BackButton from '@/components/ui/BackButton'
 import { getStoredOrganizations } from '@/lib/auth'
 import QuizBuilderPage from './QuizBuilderPage'
 import {
+  createChapterApi,
   createCourseApi,
   createCourseModuleApi,
-  createModuleNodeApi,
+  deleteChapterApi,
   deleteCourseModuleApi,
-  deleteModuleNodeApi,
   getCoursesApi,
   getCourseModulesApi,
+  getModuleChaptersApi,
   getModuleNodesApi,
+  updateChapterApi,
   updateCourseApi,
   updateCourseModuleApi,
   updateModuleNodeApi,
+  type ApiChapter,
   type ApiCourseModule,
   type ApiModuleNode,
 } from '@/lib/api/organizations'
 import { useStoreRefresh } from '../useStoreRefresh'
 import {
-  getQuestions,
   getCourseTracks,
   addCourseTrack,
   updateCourseTrack,
@@ -37,16 +39,8 @@ import {
   getProgramsByLevel,
   addProgram,
   updateProgram,
-  getProgramResources,
-  getProgramTasks,
-  getProgramAssessments,
-  removeProgramResource,
-  removeProgramTask,
-  removeProgramAssessment,
 } from '../store'
 import {
-  buildQuestionsInputJson,
-  isRootModuleNode,
   toAbsoluteContentUrl,
   toCourseStatus,
 } from './courseBuilderHelpers'
@@ -60,7 +54,7 @@ import {
 } from './courseBuilderProgramHelpers'
 import CourseDetailsCard, { type CourseFormState } from './CourseDetailsCard'
 import CourseStructureCard from './CourseStructureCard'
-import LevelProgramsSection, { type PhaseDraftRow } from './LevelProgramsSection'
+import LevelProgramsSection from './LevelProgramsSection'
 import {
   ProgramModal,
   LevelEditModal,
@@ -76,17 +70,6 @@ function newClientId(prefix: string): string {
   return newId(prefix)
 }
 
-function resourceTypeToLabel(type: string): 'Link' | 'PDF' | 'Video' {
-  switch (type) {
-    case 'link':
-      return 'Link'
-    case 'pdf':
-      return 'PDF'
-    default:
-      return 'Video'
-  }
-}
-
 // ApiCurriculumContext moved to CourseBuilderProgramInner.tsx
 
 function requireOrgAndCourseIds(
@@ -99,6 +82,17 @@ function requireOrgAndCourseIds(
     return null
   }
   return { orgId, effectiveCourseId }
+}
+
+function savedThumbnailUrl(thumbnail: string | null | undefined): string | null {
+  return thumbnail ? toAbsoluteContentUrl(thumbnail) : null
+}
+
+/** Content fields for an item edit: a freshly uploaded file wins over the URL field. */
+function contentSourcePatch(state: NodeEditModalState, fileProvided: boolean, urlProvided: boolean) {
+  if (fileProvided) return { learning_material_content_file: state.contentFile ?? undefined }
+  if (urlProvided) return { learning_material_content_url: state.contentUrl.trim() || undefined }
+  return {}
 }
 
 function isBlank(s: unknown): boolean {
@@ -219,11 +213,10 @@ export default function InstituteAdminCourseBuilder() {
 
   const [apiModules, setApiModules] = useState<ApiCourseModule[]>([])
   const [apiNodesByModule, setApiNodesByModule] = useState<Record<string, ApiModuleNode[]>>({})
+  const [apiChaptersByModule, setApiChaptersByModule] = useState<Record<string, ApiChapter[]>>({})
   const [levelEditModal, setLevelEditModal] = useState<LevelEditModalState | null>(null)
   const isEditMode = Boolean(courseId) && courseId !== 'new'
   const createButtonLabel = creatingCourse ? 'Creating…' : 'Save Course'
-  const [committingCurriculum, setCommittingCurriculum] = useState(false)
-  const commitLabel = isEditMode ? 'Save Curriculum' : 'Create'
   const [nodeEditLoading, setNodeEditLoading] = useState<number | null>(null)
   const [nodeEditModal, setNodeEditModal] = useState<NodeEditModalState | null>(null)
   const nodeEditTaskFileRef = useRef<HTMLInputElement>(null)
@@ -234,9 +227,7 @@ export default function InstituteAdminCourseBuilder() {
     programId: string
     editingAssessmentId: string | null
     moduleId?: string
-    phaseNodeId?: number | null
-    phaseDraft?: { title: string; description: string }
-    onDraftCommitted?: () => void
+    chapterId?: number | null
   } | null>(null)
 
   const openQuizPage = (
@@ -248,9 +239,7 @@ export default function InstituteAdminCourseBuilder() {
       programId,
       editingAssessmentId,
       moduleId: ctx?.moduleId,
-      phaseNodeId: ctx?.phaseNodeId,
-      phaseDraft: ctx?.phaseDraft,
-      onDraftCommitted: ctx?.onDraftCommitted,
+      chapterId: ctx?.chapterId,
     })
   }
   const closeQuizPage = () => setQuizPageConfig(null)
@@ -296,8 +285,12 @@ export default function InstituteAdminCourseBuilder() {
     try {
       await deleteCourseModuleApi(orgId, effectiveCourseId, lvl.id)
       if (trackId) removeCourseLevelsByName(trackId, lvl.title)
-      setPhaseDraftsByModule((p) => ({ ...p, [String(lvl.id)]: [] }))
       setApiNodesByModule((p) => {
+        const next = { ...p }
+        delete next[String(lvl.id)]
+        return next
+      })
+      setApiChaptersByModule((p) => {
         const next = { ...p }
         delete next[String(lvl.id)]
         return next
@@ -349,11 +342,7 @@ export default function InstituteAdminCourseBuilder() {
               String(c.status ?? '').toLowerCase() === 'published' ? 'published' : 'draft',
             // Show the saved thumbnail from the backend unless the user has already
             // picked a new local file this session.
-            thumbnailPreview: prev.thumbnailFile
-              ? prev.thumbnailPreview
-              : c.thumbnail
-                ? toAbsoluteContentUrl(c.thumbnail)
-                : null,
+            thumbnailPreview: prev.thumbnailFile ? prev.thumbnailPreview : savedThumbnailUrl(c.thumbnail),
           }))
         }
       })
@@ -365,14 +354,16 @@ export default function InstituteAdminCourseBuilder() {
     }
   }, [orgId, courseId])
 
+  /** Loads a module's chapters and items (nodes) together, since items render inside chapters. */
   const fetchNodes = async (moduleId: string | number) => {
     if (!orgId || !effectiveCourseId || !moduleId) return
-    try {
-      const nodes = await getModuleNodesApi(orgId, effectiveCourseId, moduleId)
-      setApiNodesByModule((p) => ({ ...p, [String(moduleId)]: nodes }))
-    } catch {
-      setApiNodesByModule((p) => ({ ...p, [String(moduleId)]: [] }))
-    }
+    const key = String(moduleId)
+    const [nodes, chapters] = await Promise.all([
+      getModuleNodesApi(orgId, effectiveCourseId, moduleId).catch(() => [] as ApiModuleNode[]),
+      getModuleChaptersApi(orgId, effectiveCourseId, moduleId).catch(() => [] as ApiChapter[]),
+    ])
+    setApiNodesByModule((p) => ({ ...p, [key]: nodes }))
+    setApiChaptersByModule((p) => ({ ...p, [key]: chapters }))
   }
 
   const fetchModules = async () => {
@@ -389,7 +380,7 @@ export default function InstituteAdminCourseBuilder() {
   }
 
   useEffect(() => {
-    fetchModules()
+    void fetchModules()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, effectiveCourseId])
 
@@ -473,20 +464,21 @@ export default function InstituteAdminCourseBuilder() {
       : [...modulesForChecks]
           .sort((a, b) => (a.sequence_order ?? 0) - (b.sequence_order ?? 0))
           .at(-1)?.sequence_order ?? 0
-    let nextOrder = lastOrder + 1
     try {
-      for (const name of uniqueToCreate) {
-        // backend API: modules == levels
-        const created = await createCourseModuleApi(ids.orgId, ids.effectiveCourseId, {
-          title: name,
-          description: '',
-          sequence_order: nextOrder,
-        })
-        // keep current UI/store in sync (until full course-builder is fully API-driven)
-        if (trackId) addCourseLevel({ trackId, name, order: nextOrder })
-        setApiModules((p) => [...p, created])
-        nextOrder++
-      }
+      // backend API: modules == levels. Each level carries its own sequence_order,
+      // so they can be created in parallel.
+      const created = await Promise.all(
+        uniqueToCreate.map((name, i) =>
+          createCourseModuleApi(ids.orgId, ids.effectiveCourseId, {
+            title: name,
+            description: '',
+            sequence_order: lastOrder + 1 + i,
+          }),
+        ),
+      )
+      // keep current UI/store in sync (until full course-builder is fully API-driven)
+      if (trackId) uniqueToCreate.forEach((name, i) => addCourseLevel({ trackId, name, order: lastOrder + 1 + i }))
+      setApiModules((p) => [...p, ...created])
       setLevelDrafts([{ id: newClientId('lvl'), value: '' }])
       refresh()
       showToast('Level(s) created.', 'success')
@@ -495,7 +487,6 @@ export default function InstituteAdminCourseBuilder() {
     }
   }
 
-  const [phaseDraftsByModule, setPhaseDraftsByModule] = useState<Record<string, PhaseDraftRow[]>>({})
   const [collapsedPhases, setCollapsedPhases] = useState<Set<number>>(new Set())
   const togglePhase = (id: number) =>
     setCollapsedPhases((prev) => {
@@ -541,16 +532,12 @@ export default function InstituteAdminCourseBuilder() {
 
   const openProgramModal = (
     moduleId: string,
-    opts?: { apiNodeId?: string; localDraftClientId?: string; flatProgramId?: string }
+    opts?: { chapterId?: number; flatProgramId?: string }
   ) => {
     if (!moduleId) return
-    if (opts?.localDraftClientId) {
-      const d = phaseDraftsByModule[moduleId]?.find((x) => x.clientId === opts.localDraftClientId)
-      if (d) setProgramForm({ title: d.title, description: d.description })
-    } else if (opts?.apiNodeId) {
-      const list = apiNodesByModule[moduleId] ?? []
-      const n = list.find((x) => String(x.id) === String(opts.apiNodeId))
-      if (n) setProgramForm({ title: n.title, description: n.description ?? '' })
+    if (opts?.chapterId) {
+      const ch = (apiChaptersByModule[moduleId] ?? []).find((x) => x.id === opts.chapterId)
+      if (ch) setProgramForm({ title: ch.title, description: ch.description ?? '' })
     } else if (opts?.flatProgramId) {
       const p = getProgramsByLevel(moduleId).find((x) => x.id === opts.flatProgramId)
       if (p) setProgramForm({ title: p.title, description: p.description ?? '' })
@@ -559,10 +546,52 @@ export default function InstituteAdminCourseBuilder() {
     }
     setProgramModalState({
       moduleId,
-      apiNodeId: opts?.apiNodeId,
-      localDraftClientId: opts?.localDraftClientId,
+      chapterId: opts?.chapterId,
       flatProgramId: opts?.flatProgramId,
     })
+  }
+
+  /** Chapters of a course that only exists in the local store (no API level). */
+  const saveLocalProgram = (state: ProgramModalState, title: string, description: string) => {
+    if (state.flatProgramId) {
+      updateProgram(state.flatProgramId, { title, description })
+      showToast('Phase updated.', 'success')
+    } else if (trackId) {
+      addProgram({ levelId: state.moduleId, trackId, title, description, status: 'draft' })
+      showToast('Phase added.', 'success')
+    } else {
+      showToast('Course not saved yet. Please save it first.', 'error')
+      return
+    }
+    closeProgramModal()
+    refresh()
+  }
+
+  /** Creates or renames a chapter on the server; the modal stays open on failure. */
+  const saveApiChapter = async (state: ProgramModalState, title: string, description: string) => {
+    if (!orgId || !effectiveCourseId) {
+      showToast('Organization not found.', 'error')
+      return
+    }
+    const mid = state.moduleId
+    const isEdit = Boolean(state.chapterId)
+    if (!isEdit && !isChapterTitleAvailable(mid, title)) {
+      showToast('A chapter with this title already exists in this level.', 'warning')
+      return
+    }
+    try {
+      if (state.chapterId) {
+        await updateChapterApi(orgId, effectiveCourseId, mid, state.chapterId, { title, description })
+      } else {
+        await createChapterApi(orgId, effectiveCourseId, mid, { title, description })
+      }
+      await fetchNodes(mid)
+      showToast(isEdit ? 'Chapter updated.' : 'Chapter added.', 'success')
+      closeProgramModal()
+    } catch (err) {
+      const fallback = isEdit ? 'Failed to update chapter.' : 'Failed to add chapter.'
+      showToast(err instanceof Error ? err.message : fallback, 'error')
+    }
   }
 
   const handleSaveProgram = async (e: React.SyntheticEvent) => {
@@ -573,73 +602,10 @@ export default function InstituteAdminCourseBuilder() {
       showToast('Phase title is required.', 'warning')
       return
     }
-    const nextDesc = programForm.description.trim() || ''
-    const mid = programModalState.moduleId
-    const isApiLevel = apiModules.some((m) => String(m.id) === mid)
-    if (!isApiLevel) {
-      if (programModalState.flatProgramId) {
-        updateProgram(programModalState.flatProgramId, {
-          title: nextTitle,
-          description: nextDesc,
-        })
-        showToast('Phase updated.', 'success')
-      } else {
-        if (!trackId) {
-          showToast('Course not saved yet. Please save it first.', 'error')
-          return
-        }
-        addProgram({
-          levelId: mid,
-          trackId,
-          title: nextTitle,
-          description: nextDesc,
-          status: 'draft',
-        })
-        showToast('Phase added.', 'success')
-      }
-      closeProgramModal()
-      refresh()
-      return
-    }
-    if (programModalState.apiNodeId) {
-      if (!orgId || !effectiveCourseId) {
-        showToast('Organization not found.', 'error')
-        return
-      }
-      try {
-        await updateModuleNodeApi(orgId, effectiveCourseId, mid, programModalState.apiNodeId, {
-          title: nextTitle,
-          description: nextDesc,
-        })
-        await fetchNodes(mid)
-        showToast('Phase updated.', 'success')
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Failed to update phase.', 'error')
-      }
-      closeProgramModal()
-      return
-    }
-    const isEditingDraft = !!programModalState.localDraftClientId
-    if (!isEditingDraft && !canCreateDraftInApiLevel(mid, nextTitle)) {
-      showToast('A phase with this title already exists in this level.', 'warning')
-      return
-    }
-    if (programModalState.localDraftClientId) {
-      updateDraftPhase(mid, programModalState.localDraftClientId, nextTitle, nextDesc)
-      showToast('Draft phase updated.', 'success')
-    } else {
-      addDraftPhase(mid, nextTitle, nextDesc)
-      showToast('Phase added.', 'success')
-    }
-    closeProgramModal()
-    refresh()
-  }
-
-  const removePhaseDraft = (moduleId: string, clientId: string) => {
-    setPhaseDraftsByModule((prev) => ({
-      ...prev,
-      [moduleId]: (prev[moduleId] ?? []).filter((d) => d.clientId !== clientId),
-    }))
+    const nextDesc = programForm.description.trim()
+    const isApiLevel = apiModules.some((m) => String(m.id) === programModalState.moduleId)
+    if (isApiLevel) await saveApiChapter(programModalState, nextTitle, nextDesc)
+    else saveLocalProgram(programModalState, nextTitle, nextDesc)
   }
 
   const openAddPhaseForModule = async (moduleId: string) => {
@@ -647,224 +613,28 @@ export default function InstituteAdminCourseBuilder() {
     openProgramModal(moduleId)
   }
 
-  const openApiPhaseEdit = async (moduleId: string, nodeId: number) => {
+  const openChapterEdit = async (moduleId: string, chapterId: number) => {
     await fetchNodes(moduleId)
-    openProgramModal(moduleId, { apiNodeId: String(nodeId) })
+    openProgramModal(moduleId, { chapterId })
   }
 
-  const openDraftPhaseEdit = (moduleId: string, clientId: string) => {
-    openProgramModal(moduleId, { localDraftClientId: clientId })
-  }
-
-  const deleteApiPhase = async (moduleId: string, nodeId: number) => {
+  const deleteChapter = async (moduleId: string, chapterId: number) => {
     if (!orgId || !effectiveCourseId) return
-    if (!(await requestConfirm('Delete this phase and its items?'))) return
+    if (!(await requestConfirm('Delete this chapter and its items?'))) return
     try {
-      await deleteModuleNodeApi(orgId, effectiveCourseId, moduleId, nodeId)
+      await deleteChapterApi(orgId, effectiveCourseId, moduleId, chapterId)
       await fetchNodes(moduleId)
-      showToast('Phase deleted.', 'success')
+      showToast('Chapter deleted.', 'success')
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete phase.', 'error')
+      showToast(err instanceof Error ? err.message : 'Failed to delete chapter.', 'error')
     }
-  }
-
-  const deleteDraftPhase = async (moduleId: string, clientId: string) => {
-    const ok = await requestConfirm('Delete this phase draft?')
-    if (!ok) return
-    removePhaseDraft(moduleId, clientId)
-    showToast('Phase deleted.', 'success')
   }
 
   const closeProgramModal = () => setProgramModalState(null)
 
-  const canCreateDraftInApiLevel = (mid: string, title: string): boolean => {
+  const isChapterTitleAvailable = (mid: string, title: string): boolean => {
     const titleKey = title.trim().toLowerCase()
-    const existingRoots = (apiNodesByModule[mid] ?? []).filter(isRootModuleNode)
-    const alreadyOnServer = existingRoots.some((n) => String(n.title).trim().toLowerCase() === titleKey)
-    const alreadyDraft = (phaseDraftsByModule[mid] ?? []).some((d) => String(d.title).trim().toLowerCase() === titleKey)
-    return !(alreadyOnServer || alreadyDraft)
-  }
-
-  const updateDraftPhase = (mid: string, clientId: string, title: string, description: string) => {
-    setPhaseDraftsByModule((prev) => ({
-      ...prev,
-      [mid]: (prev[mid] ?? []).map((d) => (d.clientId === clientId ? { ...d, title, description } : d)),
-    }))
-  }
-
-  const addDraftPhase = (mid: string, title: string, description: string) => {
-    const clientId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : newClientId('pd')
-    setPhaseDraftsByModule((prev) => ({
-      ...prev,
-      [mid]: [...(prev[mid] ?? []), { clientId, title, description }],
-    }))
-  }
-
-  const itemsToQuestionsInput = (assessmentId: string) => {
-    const questions = getQuestions(assessmentId) ?? []
-    return buildQuestionsInputJson(
-      questions.map((q) => ({
-        text: q.text,
-        options: (q.options ?? []).map((o) => o.text),
-        correctIndices: (q.options ?? []).flatMap((o, i) => (o.isCorrect ? [i] : [])),
-        multiSelect: q.allowMultipleCorrect ?? false,
-      })),
-    )
-  }
-
-  const commitProgramItems = async (
-    moduleId: string,
-    prerequisiteNodeId: number,
-    programId: string,
-    nextOrderRef: { value: number },
-    ids: { orgId: string; effectiveCourseId: string | number },
-  ) => {
-    const resList = getProgramResources(programId)
-    for (const r of resList) {
-      const typeLabel = resourceTypeToLabel(r.type)
-      await createModuleNodeApi(ids.orgId, ids.effectiveCourseId, moduleId, {
-        title: r.title,
-        description: r.focusNotes ?? '',
-        sequence_order: nextOrderRef.value++,
-        prerequisite_node: prerequisiteNodeId,
-        learning_material_content_type: typeLabel,
-        learning_material_content_url: r.url || undefined,
-        focus_areas: r.focusNotes ?? undefined,
-        quick_outline: r.outline ?? undefined,
-      })
-    }
-
-    const tList = getProgramTasks(programId)
-    for (const t of tList) {
-      const fmt = new Set(t.requiredSubmissionFormats ?? [])
-      await createModuleNodeApi(ids.orgId, ids.effectiveCourseId, moduleId, {
-        title: t.title,
-        description: '',
-        sequence_order: nextOrderRef.value++,
-        prerequisite_node: prerequisiteNodeId,
-        task_title: t.title,
-        task_description: t.description,
-        task_attachment: t.attachment ?? undefined,
-        task_allow_link: fmt.has('link'),
-        task_allow_paragraph: fmt.has('paragraph'),
-        task_allow_pdf: fmt.has('pdf'),
-        task_allow_screenshot: fmt.has('screenshot'),
-        task_allow_code_block: fmt.has('codeblock'),
-        task_allow_file: fmt.has('file'),
-      })
-    }
-
-    const aList = getProgramAssessments(programId)
-    for (const a of aList) {
-      const questions = getQuestions(a.id) ?? []
-      const hasMultipleCorrect = questions.some((q) => q.allowMultipleCorrect)
-      await createModuleNodeApi(ids.orgId, ids.effectiveCourseId, moduleId, {
-        title: a.name,
-        description: '',
-        sequence_order: nextOrderRef.value++,
-        prerequisite_node: prerequisiteNodeId,
-        quiz_name: a.name,
-        quiz_timer_minutes: a.durationMinutes,
-        quiz_allow_multiple_correct: hasMultipleCorrect || undefined,
-        questions_input: itemsToQuestionsInput(a.id),
-      })
-    }
-
-  }
-
-  const clearQueuedLocalItems = (programIdsToClear: Set<string>) => {
-    for (const pid of programIdsToClear) {
-      for (const r of getProgramResources(pid)) removeProgramResource(r.id)
-      for (const t of getProgramTasks(pid)) removeProgramTask(t.id)
-      for (const a of getProgramAssessments(pid)) removeProgramAssessment(a.id)
-    }
-  }
-
-  const commitSingleModule = async (
-    m: ApiCourseModule,
-    ids: ReturnType<typeof requireOrgAndCourseIds>,
-    programIdsToClear: Set<string>,
-  ) => {
-    if (!ids || !orgId || !effectiveCourseId) return
-    const moduleId = String(m.id)
-    await fetchNodes(moduleId)
-    const current = apiNodesByModule[moduleId] ?? []
-    const nextOrderRef = { value: (current.at(-1)?.sequence_order ?? current.length) + 1 }
-
-    for (const d of phaseDraftsByModule[moduleId] ?? []) {
-      const createdPhase = await createModuleNodeApi(orgId, effectiveCourseId, moduleId, {
-        title: d.title,
-        description: d.description || '',
-        sequence_order: nextOrderRef.value++,
-      })
-      const draftProgramId = `draft:${moduleId}:${d.clientId}`
-      programIdsToClear.add(draftProgramId)
-      await commitProgramItems(moduleId, createdPhase.id, draftProgramId, nextOrderRef, ids)
-    }
-
-    for (const p of (apiNodesByModule[moduleId] ?? []).filter(isRootModuleNode)) {
-      const progId = `api-phase:${moduleId}:${p.id}`
-      const hasLocalAdditions =
-        getProgramResources(progId).length > 0 ||
-        getProgramTasks(progId).length > 0 ||
-        getProgramAssessments(progId).length > 0
-      if (hasLocalAdditions) {
-        programIdsToClear.add(progId)
-        await commitProgramItems(moduleId, p.id, progId, nextOrderRef, ids)
-      }
-    }
-  }
-
-  const handleCommitCurriculum = async () => {
-    if (committingCurriculum) return
-    if (!orgId || !effectiveCourseId) {
-      showToast('Save the course first.', 'warning')
-      return
-    }
-
-    // Check if there are any pending changes to commit
-    const hasDraftPhases = Object.values(phaseDraftsByModule).some((drafts) => drafts.length > 0)
-    const hasLocalAdditions = apiModules.some((m) => {
-      const moduleId = String(m.id)
-      return (apiNodesByModule[moduleId] ?? []).filter(isRootModuleNode).some((p) => {
-        const progId = `api-phase:${moduleId}:${p.id}`
-        return (
-          getProgramResources(progId).length > 0 ||
-          getProgramTasks(progId).length > 0 ||
-          getProgramAssessments(progId).length > 0
-        )
-      })
-    })
-
-    if (!hasDraftPhases && !hasLocalAdditions) {
-      showToast('No changes to save.', 'info')
-      return
-    }
-
-    setCommittingCurriculum(true)
-    try {
-      const ids = requireOrgAndCourseIds(orgId, effectiveCourseId, (m) => showToast(m, 'warning'))
-      if (!ids) return
-      const programIdsToClear = new Set<string>()
-
-      for (const m of apiModules) {
-        await commitSingleModule(m, ids, programIdsToClear)
-      }
-
-      const toastMsg = courseId && courseId !== 'new' ? 'Curriculum updated.' : 'Curriculum created.'
-      showToast(toastMsg, 'success')
-      setPhaseDraftsByModule({})
-      clearQueuedLocalItems(programIdsToClear)
-      await fetchModules()
-
-      if (!courseId || courseId === 'new') {
-        navigate('/org-admin/content')
-      }
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to create curriculum.', 'error')
-    } finally {
-      setCommittingCurriculum(false)
-    }
+    return !(apiChaptersByModule[mid] ?? []).some((c) => String(c.title).trim().toLowerCase() === titleKey)
   }
 
   const handleSaveLevelEdit = async (e: React.SyntheticEvent) => {
@@ -904,12 +674,7 @@ export default function InstituteAdminCourseBuilder() {
         title,
         description: nodeEditModal.description ?? '',
         ...(nodeEditModal.contentType && nodeEditModal.contentType !== nodeEditModal.originalContentType ? { learning_material_content_type: nodeEditModal.contentType } : {}),
-        // A freshly uploaded file wins over the URL field; otherwise keep the URL behaviour.
-        ...(fileProvided
-          ? { learning_material_content_file: nodeEditModal.contentFile ?? undefined }
-          : urlProvided
-            ? { learning_material_content_url: nodeEditModal.contentUrl.trim() || undefined }
-            : {}),
+        ...contentSourcePatch(nodeEditModal, fileProvided, urlProvided),
         focus_areas: nodeEditModal.focusAreas.trim() || undefined,
         quick_outline: nodeEditModal.quickOutline.trim() || undefined,
       })
@@ -1007,14 +772,12 @@ export default function InstituteAdminCourseBuilder() {
                     orgId,
                     effectiveCourseId,
                     moduleId: quizPageConfig.moduleId,
-                    phaseNodeId: quizPageConfig.phaseNodeId,
-                    phaseDraft: quizPageConfig.phaseDraft,
-                    onDraftCommitted: quizPageConfig.onDraftCommitted,
+                    chapterId: quizPageConfig.chapterId,
                   }
                 : undefined
             }
             refresh={async () => {
-              await refresh()
+              refresh()
               if (quizPageConfig.moduleId) await fetchNodes(quizPageConfig.moduleId)
             }}
             onClose={closeQuizPage}
@@ -1100,17 +863,14 @@ export default function InstituteAdminCourseBuilder() {
           visibleApiModules={visibleApiModules}
           highlightedModuleId={highlightedModuleId}
           apiNodesByModule={apiNodesByModule}
-          phaseDraftsByModule={phaseDraftsByModule}
+          apiChaptersByModule={apiChaptersByModule}
           collapsedModules={collapsedModules}
           collapsedPhases={collapsedPhases}
           toggleModule={toggleModule}
           togglePhase={togglePhase}
           onAddPhase={openAddPhaseForModule}
-          onEditDraftPhase={openDraftPhaseEdit}
-          onDeleteDraftPhase={deleteDraftPhase}
-          onRemovePhaseDraft={removePhaseDraft}
-          onEditApiPhase={openApiPhaseEdit}
-          onDeleteApiPhase={deleteApiPhase}
+          onEditChapter={openChapterEdit}
+          onDeleteChapter={deleteChapter}
           orgId={orgId}
           effectiveCourseId={effectiveCourseId}
           refresh={refresh}
@@ -1120,9 +880,6 @@ export default function InstituteAdminCourseBuilder() {
           setNodeEditModal={setNodeEditModal}
           onOpenQuiz={openQuizPage}
           fetchNodes={fetchNodes}
-          committingCurriculum={committingCurriculum}
-          onCommit={handleCommitCurriculum}
-          commitLabel={commitLabel}
         />
       )}
 

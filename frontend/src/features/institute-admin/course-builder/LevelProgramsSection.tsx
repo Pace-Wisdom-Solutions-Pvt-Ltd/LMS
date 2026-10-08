@@ -3,12 +3,9 @@
 
 import { CheckSquare, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import PageCard from '@/components/ui/PageCard'
-import type { ApiCourseModule, ApiModuleNode } from '@/lib/api/organizations'
-import { collectDescendantNodes, isRootModuleNode, nodeHasContent } from './courseBuilderHelpers'
+import type { ApiChapter, ApiCourseModule, ApiModuleNode } from '@/lib/api/organizations'
 import { ProgramInner, type OpenQuizContext } from './CourseBuilderProgramInner'
 import type { NodeEditModalState } from './courseBuilderProgramHelpers'
-
-export type PhaseDraftRow = Readonly<{ clientId: string; title: string; description: string }>
 
 /** Props ProgramInner needs, threaded unchanged through the level → phase tree. */
 interface ProgramInnerBridge {
@@ -28,40 +25,31 @@ interface LevelProgramsSectionProps extends ProgramInnerBridge {
   /** Module id to briefly highlight after a user jumps to it from "Created levels". */
   highlightedModuleId?: string | null
   apiNodesByModule: Record<string, ApiModuleNode[]>
-  phaseDraftsByModule: Record<string, PhaseDraftRow[]>
+  apiChaptersByModule: Record<string, ApiChapter[]>
   collapsedModules: Set<string>
   collapsedPhases: Set<number>
   toggleModule: (id: string) => void
   togglePhase: (id: number) => void
   onAddPhase: (moduleId: string) => Promise<void> | void
-  onEditDraftPhase: (moduleId: string, clientId: string) => void
-  onDeleteDraftPhase: (moduleId: string, clientId: string) => Promise<void> | void
-  onRemovePhaseDraft: (moduleId: string, clientId: string) => void
-  onEditApiPhase: (moduleId: string, nodeId: number) => Promise<void> | void
-  onDeleteApiPhase: (moduleId: string, nodeId: number) => Promise<void> | void
-  committingCurriculum: boolean
-  onCommit: () => void
-  commitLabel: string
+  onEditChapter: (moduleId: string, chapterId: number) => Promise<void> | void
+  onDeleteChapter: (moduleId: string, chapterId: number) => Promise<void> | void
 }
 
-/** A single level card with its draft + saved phases and their curriculum items. */
+/** A single level card with its chapters and their curriculum items. */
 function ModuleAccordion({
   lvl,
   idx,
   bridge,
   isHighlighted,
   apiNodesByModule,
-  phaseDraftsByModule,
+  apiChaptersByModule,
   collapsedModules,
   collapsedPhases,
   toggleModule,
   togglePhase,
   onAddPhase,
-  onEditDraftPhase,
-  onDeleteDraftPhase,
-  onRemovePhaseDraft,
-  onEditApiPhase,
-  onDeleteApiPhase,
+  onEditChapter,
+  onDeleteChapter,
 }: {
   lvl: ApiCourseModule
   idx: number
@@ -70,25 +58,41 @@ function ModuleAccordion({
 } & Pick<
   LevelProgramsSectionProps,
   | 'apiNodesByModule'
-  | 'phaseDraftsByModule'
+  | 'apiChaptersByModule'
   | 'collapsedModules'
   | 'collapsedPhases'
   | 'toggleModule'
   | 'togglePhase'
   | 'onAddPhase'
-  | 'onEditDraftPhase'
-  | 'onDeleteDraftPhase'
-  | 'onRemovePhaseDraft'
-  | 'onEditApiPhase'
-  | 'onDeleteApiPhase'
+  | 'onEditChapter'
+  | 'onDeleteChapter'
 >) {
   const { orgId, effectiveCourseId, refresh, requestConfirm, nodeEditLoading, setNodeEditLoading, setNodeEditModal, onOpenQuiz, fetchNodes } = bridge
   const moduleId = String(lvl.id)
   const list = apiNodesByModule[moduleId] ?? []
-  const phaseList = list.filter(isRootModuleNode)
-  const drafts = phaseDraftsByModule[moduleId] ?? []
-  const hasAnyPhases = phaseList.length > 0 || drafts.length > 0
+  const chapters = apiChaptersByModule[moduleId] ?? []
+  // Items saved before chapters existed, or whose chapter was removed.
+  const unchaptered = list.filter((n) => n.chapter == null)
+  const hasAnyContent = chapters.length > 0 || unchaptered.length > 0
   const isModuleCollapsed = collapsedModules.has(moduleId)
+
+  const programInnerProps = (chapterId: number | null) => ({
+    orgId,
+    effectiveCourseId,
+    refresh,
+    requestConfirm,
+    nodeEditLoading,
+    setNodeEditLoading,
+    setNodeEditModal,
+    onOpenQuiz,
+    apiCurriculum: {
+      orgId,
+      moduleId,
+      chapterId,
+      nodesInModule: list.length,
+      refresh: () => fetchNodes(moduleId),
+    },
+  })
 
   return (
     <div
@@ -127,142 +131,76 @@ function ModuleAccordion({
             </button>
           </div>
 
-          {hasAnyPhases ? (
+          {hasAnyContent ? (
             <div className="space-y-3">
-              {drafts.map((d) => (
-                <div key={d.clientId} className="rounded-xl border border-slate-200 bg-white p-3.5 border-dashed">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 mt-0.5">{d.title}</p>
-                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{d.description || '—'}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-white hover:border-brand-teal/30 hover:text-brand-teal"
-                        onClick={() => onEditDraftPhase(moduleId, d.clientId)}
-                        aria-label="Edit phase"
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="p-2 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
-                        onClick={() => { void onDeleteDraftPhase(moduleId, d.clientId) }}
-                        aria-label="Delete phase"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                    <ProgramInner
-                      programId={`draft:${moduleId}:${d.clientId}`}
-                      apiChildNodes={[]}
-                      orgId={orgId}
-                      effectiveCourseId={effectiveCourseId}
-                      refresh={refresh}
-                      requestConfirm={requestConfirm}
-                      nodeEditLoading={nodeEditLoading}
-                      setNodeEditLoading={setNodeEditLoading}
-                      setNodeEditModal={setNodeEditModal}
-                      onOpenQuiz={onOpenQuiz}
-                      apiCurriculum={{
-                        orgId,
-                        moduleId,
-                        phaseNodeId: null,
-                        phaseDraft: { title: d.title, description: d.description },
-                        localDraftClientId: d.clientId,
-                        onDraftCommitted: () => onRemovePhaseDraft(moduleId, d.clientId),
-                        nodesInModule: list.length,
-                        refresh: () => fetchNodes(moduleId),
-                      }}
-                    />
-                  </div>
+              {unchaptered.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                  <ProgramInner
+                    programId={`unchaptered:${moduleId}`}
+                    apiChildNodes={unchaptered}
+                    {...programInnerProps(null)}
+                  />
                 </div>
-              ))}
+              )}
 
-              {phaseList.map((p) => {
-                // A root node that carries its own content is a regular curriculum item,
-                // not an empty chapter heading. Render it (and its chain) as a flat list
-                // with no chapter header so the first item is never swallowed.
-                const isContentRoot = nodeHasContent(p)
-                const childNodes = isContentRoot ? [p, ...collectDescendantNodes(p.id, list)] : collectDescendantNodes(p.id, list)
-                const progId = `api-phase:${moduleId}:${p.id}`
-                const isCollapsed = collapsedPhases.has(p.id)
+              {chapters.map((ch) => {
+                const childNodes = list.filter((n) => n.chapter === ch.id)
+                const isCollapsed = collapsedPhases.has(ch.id)
                 return (
                   <div
-                    key={p.id}
+                    key={ch.id}
                     className="rounded-xl border border-slate-200 bg-white hover:border-brand-teal/70 hover:shadow-sm transition-colors"
                   >
-                    {!isContentRoot && (
-                      <button
-                        type="button"
-                        onClick={() => togglePhase(p.id)}
-                        className="w-full flex items-center justify-between gap-2 p-3.5 text-left"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800">{p.title}</p>
-                          {p.description && (
-                            <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{p.description}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[11px] text-slate-400 font-medium">
-                            {childNodes.length} item{childNodes.length !== 1 ? 's' : ''}
-                          </span>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-white hover:border-brand-teal/30 hover:text-brand-teal"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              void onEditApiPhase(moduleId, p.id)
-                            }}
-                            aria-label="Edit phase"
-                            title="Edit"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              void onDeleteApiPhase(moduleId, p.id)
-                            }}
-                            aria-label="Delete phase"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                          <ChevronDown
-                            className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
-                          />
-                        </div>
-                      </button>
-                    )}
-                    {!isCollapsed && (
-                      <div className={isContentRoot ? 'p-3.5' : 'border-t border-slate-100 rounded-b-xl bg-slate-50/40 p-3'}>
-                        <ProgramInner
-                          programId={progId}
-                          apiChildNodes={childNodes}
-                          orgId={orgId}
-                          effectiveCourseId={effectiveCourseId}
-                          refresh={refresh}
-                          requestConfirm={requestConfirm}
-                          nodeEditLoading={nodeEditLoading}
-                          setNodeEditLoading={setNodeEditLoading}
-                          setNodeEditModal={setNodeEditModal}
-                          onOpenQuiz={onOpenQuiz}
-                          apiCurriculum={{
-                            orgId,
-                            moduleId,
-                            phaseNodeId: Number(p.id),
-                            nodesInModule: list.length,
-                            refresh: () => fetchNodes(moduleId),
+                    <button
+                      type="button"
+                      onClick={() => togglePhase(ch.id)}
+                      className="w-full flex items-center justify-between gap-2 p-3.5 text-left"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800">{ch.title}</p>
+                        {ch.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{ch.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {childNodes.length} item{childNodes.length !== 1 ? 's' : ''}
+                        </span>
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-white hover:border-brand-teal/30 hover:text-brand-teal"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void onEditChapter(moduleId, ch.id)
                           }}
+                          aria-label="Edit phase"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void onDeleteChapter(moduleId, ch.id)
+                          }}
+                          aria-label="Delete phase"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                        <ChevronDown
+                          className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+                        />
+                      </div>
+                    </button>
+                    {!isCollapsed && (
+                      <div className="border-t border-slate-100 rounded-b-xl bg-slate-50/40 p-3">
+                        <ProgramInner
+                          programId={`chapter:${moduleId}:${ch.id}`}
+                          apiChildNodes={childNodes}
+                          {...programInnerProps(ch.id)}
                         />
                       </div>
                     )}
@@ -282,10 +220,8 @@ function ModuleAccordion({
 /** "Levels & Programs" card: every level as a collapsible accordion of phases. */
 export default function LevelProgramsSection({
   visibleApiModules,
-  // committingCurriculum, onCommit, commitLabel — Save Curriculum button is
-  // currently commented out below; keep the props on the type for when it returns.
   ...rest
-}: LevelProgramsSectionProps) {
+}: Readonly<LevelProgramsSectionProps>) {
   const bridge: ProgramInnerBridge = {
     orgId: rest.orgId,
     effectiveCourseId: rest.effectiveCourseId,
@@ -311,25 +247,17 @@ export default function LevelProgramsSection({
               bridge={bridge}
               isHighlighted={String(lvl.id) === rest.highlightedModuleId}
               apiNodesByModule={rest.apiNodesByModule}
-              phaseDraftsByModule={rest.phaseDraftsByModule}
+              apiChaptersByModule={rest.apiChaptersByModule}
               collapsedModules={rest.collapsedModules}
               collapsedPhases={rest.collapsedPhases}
               toggleModule={rest.toggleModule}
               togglePhase={rest.togglePhase}
               onAddPhase={rest.onAddPhase}
-              onEditDraftPhase={rest.onEditDraftPhase}
-              onDeleteDraftPhase={rest.onDeleteDraftPhase}
-              onRemovePhaseDraft={rest.onRemovePhaseDraft}
-              onEditApiPhase={rest.onEditApiPhase}
-              onDeleteApiPhase={rest.onDeleteApiPhase}
+              onEditChapter={rest.onEditChapter}
+              onDeleteChapter={rest.onDeleteChapter}
             />
           ))}
       </div>
-      {/* <div className="flex justify-end mt-6 pt-4 border-t border-slate-100">
-        <Button size="lg" loading={committingCurriculum} loadingText="Saving…" onClick={onCommit}>
-          {commitLabel}
-        </Button>
-      </div> */}
     </PageCard>
   )
 }

@@ -31,11 +31,15 @@ vi.mock('@/lib/toastApi', () => ({
 const mockGetCourseById = vi.fn()
 const mockGetCourseModules = vi.fn()
 const mockGetModuleNodes = vi.fn()
+const mockGetModuleChapters = vi.fn()
+const mockCreateChapter = vi.fn()
 
 vi.mock('@/lib/api/organizations', () => ({
   getCourseByIdApi: (...args: unknown[]) => mockGetCourseById(...args),
   getCourseModulesApi: (...args: unknown[]) => mockGetCourseModules(...args),
   getModuleNodesApi: (...args: unknown[]) => mockGetModuleNodes(...args),
+  getModuleChaptersApi: (...args: unknown[]) => mockGetModuleChapters(...args),
+  createChapterApi: (...args: unknown[]) => mockCreateChapter(...args),
 }))
 
 // Mock the ProgramInner component to simplify testing
@@ -59,9 +63,11 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
     mockGetCourseModules.mockResolvedValue([
       { id: 10, title: 'Module 1', sequence_order: 1 },
     ])
-    mockGetModuleNodes.mockResolvedValue([
-      { id: 100, title: 'Phase 1', description: 'Phase desc', sequence_order: 1, prerequisite_node: null },
+    mockGetModuleChapters.mockResolvedValue([
+      { id: 100, title: 'Phase 1', description: 'Phase desc', sequence_order: 1 },
     ])
+    mockGetModuleNodes.mockResolvedValue([])
+    mockCreateChapter.mockResolvedValue({ id: 200, title: 'New Phase Title' })
   })
 
   afterEach(() => cleanup())
@@ -184,7 +190,7 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
     expect(screen.getByText('Draft')).toBeTruthy()
   })
 
-  it('fills and submits the Add Phase modal to create a draft', async () => {
+  it('fills and submits the Add Phase modal to create the phase on the server', async () => {
     const { showToast } = await import('@/lib/toastApi')
     renderComponent()
     expect(await screen.findByText('Module 1')).toBeTruthy()
@@ -204,11 +210,15 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
     })
 
     // Submit
-    fireEvent.click(screen.getByText('Add Phase Draft'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Phase' }))
 
     await waitFor(() =>
-      expect(showToast).toHaveBeenCalledWith('Phase draft added.', 'success'),
+      expect(showToast).toHaveBeenCalledWith('Phase added.', 'success'),
     )
+    expect(mockCreateChapter).toHaveBeenCalledWith('1', '1', '10', {
+      title: 'New Phase Title',
+      description: 'Phase description',
+    })
   })
 
   it('shows warning toast when phase title is empty', async () => {
@@ -222,11 +232,12 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
     )
 
     // Submit without filling title
-    fireEvent.click(screen.getByText('Add Phase Draft'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Phase' }))
 
     await waitFor(() =>
       expect(showToast).toHaveBeenCalledWith('Phase title is required.', 'warning'),
     )
+    expect(mockCreateChapter).not.toHaveBeenCalled()
   })
 
   it('closes the Add Phase modal when Cancel is clicked', async () => {
@@ -244,24 +255,27 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
     )
   })
 
-  it('renders an added phase draft as a ProgramInner and counts it as a draft', async () => {
+  it('shows a newly added phase after it is saved', async () => {
     renderComponent()
     expect(await screen.findByText('Module 1')).toBeTruthy()
-    expect(screen.getByText('1 Phases • 0 Drafts')).toBeTruthy()
+    expect(screen.getByText('1 Phases')).toBeTruthy()
 
+    mockGetModuleChapters.mockResolvedValue([
+      { id: 100, title: 'Phase 1', sequence_order: 1 },
+      { id: 200, title: 'New Phase', sequence_order: 2 },
+    ])
     fireEvent.click(screen.getByRole('button', { name: /Add Phase/i }))
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: /Add New Phase/i })).toBeTruthy(),
     )
     fireEvent.change(screen.getByLabelText(/Phase Title/i), {
-      target: { value: 'Draft Phase' },
+      target: { value: 'New Phase' },
     })
-    fireEvent.click(screen.getByText('Add Phase Draft'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Phase' }))
 
-    // Drafts are kept locally (and persisted when their first item is saved),
-    // so the module now lists the server phase plus one draft.
-    await waitFor(() => expect(screen.getByText('1 Phases • 1 Drafts')).toBeTruthy())
-    expect(screen.getAllByTestId(/^program-inner-/)).toHaveLength(2)
+    // The phase is saved immediately and the module is reloaded from the server.
+    await waitFor(() => expect(screen.getByText('2 Phases')).toBeTruthy())
+    expect(screen.getByTestId('program-inner-chapter:10:200')).toBeTruthy()
     expect(screen.queryByRole('heading', { name: /Add New Phase/i })).toBeNull()
   })
 
@@ -277,6 +291,7 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
 
   it('handles fetchNodes failure gracefully (empty nodes)', async () => {
     mockGetModuleNodes.mockRejectedValue(new Error('nodes fail'))
+    mockGetModuleChapters.mockRejectedValue(new Error('chapters fail'))
     renderComponent()
     expect(await screen.findByText('Module 1')).toBeTruthy()
     // Module shows 0 phases
@@ -304,20 +319,22 @@ describe('CourseDetail - Instructor interaction tests (API-based)', () => {
     expect(screen.getByText('1')).toBeTruthy()
   })
 
-  it('filters root nodes correctly - ignores non-root nodes', async () => {
+  it('groups items under their phase and lists items without a phase separately', async () => {
     mockGetModuleNodes.mockResolvedValue([
-      { id: 100, title: 'Root Phase', prerequisite_node: null, sequence_order: 1 },
-      { id: 101, title: 'Child Phase', prerequisite_node: 100, sequence_order: 2 },
+      { id: 300, title: 'Loose item', chapter: null, sequence_order: 1 },
+      { id: 301, title: 'Phase item', chapter: 100, sequence_order: 2 },
     ])
     renderComponent()
     expect(await screen.findByText('Module 1')).toBeTruthy()
-    // Only root node counted in phase display
     expect(screen.getByText(/1 Phases/)).toBeTruthy()
+    expect(screen.getByTestId('program-inner-unchaptered:10')).toBeTruthy()
+    expect(screen.getByTestId('program-inner-chapter:10:100')).toBeTruthy()
   })
 
-  it('renders ProgramInner for server nodes', async () => {
+  it('renders ProgramInner for server phases', async () => {
     renderComponent()
     expect(await screen.findByText('Module 1')).toBeTruthy()
-    expect(screen.getByTestId('program-inner-100')).toBeTruthy()
+    expect(screen.getByTestId('program-inner-chapter:10:100')).toBeTruthy()
+    expect(screen.queryByTestId('program-inner-unchaptered:10')).toBeNull()
   })
 })

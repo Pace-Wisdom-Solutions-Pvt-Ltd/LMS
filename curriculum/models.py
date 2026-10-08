@@ -52,8 +52,37 @@ class Module(SoftDeleteMixin):
         return f"{self.course.title} - {self.title}"
 
 
+class Chapter(SoftDeleteMixin):
+    """A card inside a module that groups related nodes (videos, tasks, quizzes...)."""
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='chapters')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    sequence_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sequence_order', 'id']
+
+    def __str__(self):
+        return f"{self.module.title} - {self.title}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Chapter order drives node order, so re-chain the module's nodes.
+        from .utils import reorder_chapters, reorder_nodes
+        reorder_chapters(self.module_id)
+        reorder_nodes(self.module_id)
+
+    def delete(self, using=None, keep_parents=False):
+        for node in self.nodes.all():
+            node.delete()
+        super().delete(using=using, keep_parents=keep_parents)
+
+
 class Node(SoftDeleteMixin):
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='nodes')
+    chapter = models.ForeignKey(Chapter, on_delete=models.SET_NULL, null=True, blank=True, related_name='nodes')
     title = models.CharField(max_length=255)
     description=models.TextField(blank=True)    
     sequence_order = models.PositiveIntegerField(default=0)

@@ -49,11 +49,13 @@ class IsCourseAdminOrTeacher(permissions.BasePermission):
         return self._is_teacher_assigned_to_course(request.user, course)
 
     def _resolve_course(self, obj):
-        from .models import Course, Module, Node
+        from .models import Course, Module, Chapter, Node
         if isinstance(obj, Course):
             return obj
         if isinstance(obj, Module):
             return obj.course
+        if isinstance(obj, Chapter):
+            return obj.module.course
         if isinstance(obj, Node):
             return obj.module.course
         return None

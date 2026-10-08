@@ -29,6 +29,7 @@ vi.mock('@/lib/api/organizations', () => ({
     { id: 1, title: 'Getting Started with JavaScript', sequence_order: 1 },
   ]),
   getModuleNodesApi: vi.fn().mockResolvedValue([]),
+  getModuleChaptersApi: vi.fn().mockResolvedValue([]),
   createModuleNodeApi: vi.fn(),
 }))
 

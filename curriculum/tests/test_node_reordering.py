@@ -4,6 +4,7 @@
 from django.test import TestCase
 from organizations.models import Organization
 from curriculum.models import Course, Module, Node
+from curriculum.utils import apply_node_order
 
 class NodeReorderingTestCase(TestCase):
     def setUp(self):
@@ -67,18 +68,10 @@ class NodeReorderingTestCase(TestCase):
         node_c = Node.objects.create(module=self.module, title="Node C", sequence_order=3)
         node_d = Node.objects.create(module=self.module, title="Node D", sequence_order=4)
 
-        # Simulate a manual drag-and-drop reordering: drag Node D to position 2 (after Node A, before Node B)
-        # The new sequence_orders are: Node A (1), Node D (2), Node B (3), Node C (4)
-        # When we update their sequence_orders and save, the prerequisites must automatically update:
+        # Drag Node D to position 2 (after Node A, before Node B). The frontend
+        # sends the whole new order in one atomic request; prerequisites follow:
         # Node A (prereq: None), Node D (prereq: A), Node B (prereq: D), Node C (prereq: B)
-        node_d.sequence_order = 2
-        node_d.save()
-
-        node_b.sequence_order = 3
-        node_b.save()
-
-        node_c.sequence_order = 4
-        node_c.save()
+        self.assertTrue(apply_node_order(self.module.id, [node_a.id, node_d.id, node_b.id, node_c.id]))
 
         # Refresh all
         node_a.refresh_from_db()
@@ -95,6 +88,20 @@ class NodeReorderingTestCase(TestCase):
         self.assertEqual(node_d.prerequisite_node, node_a)
         self.assertEqual(node_b.prerequisite_node, node_d)
         self.assertEqual(node_c.prerequisite_node, node_b)
+
+    def test_equal_sequence_orders_tie_break_by_id(self):
+        # Ordering is deterministic: when two nodes claim the same position the
+        # older (lower id) one comes first, regardless of which was saved last.
+        node_a = Node.objects.create(module=self.module, title="Node A", sequence_order=1)
+        node_b = Node.objects.create(module=self.module, title="Node B", sequence_order=2)
+        node_b.sequence_order = 1
+        node_b.save()
+        node_a.save()
+
+        node_a.refresh_from_db()
+        node_b.refresh_from_db()
+        self.assertEqual((node_a.sequence_order, node_b.sequence_order), (1, 2))
+        self.assertEqual(node_b.prerequisite_node, node_a)
 
     def test_reordering_on_soft_delete(self):
         node_a = Node.objects.create(module=self.module, title="Node A", sequence_order=1)

@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { showToast } from '@/lib/toastApi'
-import { updateModuleNodeApi, type ApiModuleNode } from '@/lib/api/organizations'
+import { reorderChapterNodesApi, reorderModuleNodesApi, type ApiModuleNode } from '@/lib/api/organizations'
 import {
   getProgramResources,
   getProgramTasks,
@@ -32,9 +32,7 @@ import type { ItemCreateContext } from './curriculumItemApi'
 /** Details a quiz editor needs to POST a new quiz node under the right chapter. */
 export type OpenQuizContext = {
   moduleId?: string
-  phaseNodeId?: number | null
-  phaseDraft?: { title: string; description: string }
-  onDraftCommitted?: () => void
+  chapterId?: number | null
 }
 
 // Helpers and previews live in ./courseBuilderProgramHelpers and
@@ -177,9 +175,7 @@ export function ProgramInner({
           orgId: apiCurriculum.orgId,
           effectiveCourseId,
           moduleId: apiCurriculum.moduleId,
-          phaseNodeId: apiCurriculum.phaseNodeId,
-          phaseDraft: apiCurriculum.phaseDraft,
-          onDraftCommitted: apiCurriculum.onDraftCommitted,
+          chapterId: apiCurriculum.chapterId,
         }
       : undefined
 
@@ -221,31 +217,13 @@ export function ProgramInner({
     setSortedNodes(reordered) // optimistic update
 
     const original = sortedNodes
-    const patches: Array<{ node: ApiModuleNode; prerequisite_node: number | null; sequence_order: number }> = []
-
-    // When the phase root itself is included in apiChildNodes (isContentRoot case),
-    // the first item has prerequisite_node: null. Position-0 items should keep null.
-    // Otherwise, the first child correctly points to phaseNodeId — preserve that.
-    const firstItemIsRoot = (apiChildNodes[0]?.prerequisite_node ?? null) === null
-    const phaseRoot: number | null = firstItemIsRoot ? null : (apiCurriculum.phaseNodeId ?? null)
-
-    reordered.forEach((n, idx) => {
-      const prevNode = reordered[idx - 1] ?? null
-      const newPrereq = prevNode ? prevNode.id : phaseRoot
-      const origIdx = original.findIndex((o) => o.id === n.id)
-      const origPrereq = origIdx > 0 ? original[origIdx - 1].id : phaseRoot
-      if (newPrereq !== origPrereq) {
-        patches.push({ node: n, prerequisite_node: newPrereq, sequence_order: idx + 1 })
-      }
-    })
-
+    const nodeIds = reordered.map((n) => n.id)
     try {
-      for (const p of patches) {
-        await updateModuleNodeApi(orgId, effectiveCourseId, apiCurriculum.moduleId, p.node.id, {
-          // null prerequisite → send 0 so buildUpdateNodeFormData sends '' (clears on backend)
-          prerequisite_node: p.prerequisite_node ?? 0,
-          sequence_order: p.sequence_order,
-        })
+      // One atomic request; items outside any chapter use the module-scoped endpoint.
+      if (apiCurriculum.chapterId == null) {
+        await reorderModuleNodesApi(orgId, effectiveCourseId, apiCurriculum.moduleId, nodeIds)
+      } else {
+        await reorderChapterNodesApi(orgId, effectiveCourseId, apiCurriculum.moduleId, apiCurriculum.chapterId, nodeIds)
       }
       showToast('Order saved.', 'success')
       apiCurriculum.refresh()
@@ -265,9 +243,7 @@ export function ProgramInner({
     if (onOpenQuiz) {
       onOpenQuiz(programId, editing?.id ?? null, {
         moduleId: curriculumModuleId,
-        phaseNodeId: apiCurriculum?.phaseNodeId,
-        phaseDraft: apiCurriculum?.phaseDraft,
-        onDraftCommitted: apiCurriculum?.onDraftCommitted,
+        chapterId: apiCurriculum?.chapterId,
       })
     } else {
       setQuizDrawer({ open: true, editing })

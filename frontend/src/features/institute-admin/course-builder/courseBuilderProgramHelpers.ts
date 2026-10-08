@@ -17,6 +17,21 @@ export const SUBMISSION_FORMATS: { id: SubmissionFormat; label: string }[] = [
   { id: 'screenshot', label: 'Screenshot' },
 ]
 
+function editNodeType(isTask: boolean, isQuiz: boolean): NodeEditModalState['nodeType'] {
+  if (isTask) return 'task'
+  return isQuiz ? 'quiz' : 'content'
+}
+
+/** Maps a submission format id to its boolean field on {@link NodeEditModalState}. */
+export const TASK_FORMAT_FIELDS = {
+  link: 'taskAllowLink',
+  paragraph: 'taskAllowParagraph',
+  pdf: 'taskAllowPdf',
+  screenshot: 'taskAllowScreenshot',
+  codeblock: 'taskAllowCodeBlock',
+  file: 'taskAllowFile',
+} as const satisfies Record<SubmissionFormat, keyof NodeEditModalState>
+
 export type Badge = { label: string; cls: string }
 
 export type ResourceType = 'link' | 'pdf' | 'video'
@@ -52,12 +67,8 @@ export type ApiNodeInfo = {
 export type ApiCurriculumContext = {
   orgId: string
   moduleId: string
-  /** Saved phase on server — further items use prerequisite_node = this id. */
-  phaseNodeId: number | null
-  /** Unsaved phase from “Add Phase” — first Resource/Task/Quiz POST merges title + description with content. */
-  phaseDraft?: { title: string; description: string }
-  localDraftClientId?: string
-  onDraftCommitted?: () => void
+  /** Chapter (card) these items belong to; null for items outside any chapter. */
+  chapterId: number | null
   nodesInModule: number
   refresh: () => Promise<void>
 }
@@ -254,7 +265,7 @@ export function buildNodeEditModalState(full: ApiModuleNode, info: ApiNodeInfo, 
     state: {
       moduleId,
       nodeId: full.id,
-      nodeType: isTask ? 'task' : isQuiz ? 'quiz' : 'content',
+      nodeType: editNodeType(isTask, isQuiz),
       title: pick('title'),
       description: pick('description', 'content_text', 'learning_material_content_text'),
       contentType,

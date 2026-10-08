@@ -3,7 +3,7 @@
 
 from django.contrib import admin
 from .models import (
-    Course, Module, Node, LearningMaterial,
+    Course, Module, Chapter, Node, LearningMaterial,
     Assessment, AssignmentSubmission, StudentNodeProgress,
     Task, TaskSubmission,
     Quiz, QuizQuestion, QuizOption, QuizSubmission,
@@ -21,9 +21,15 @@ class ModuleAdmin(admin.ModelAdmin):
     list_filter = ('course__organization', 'course')
     search_fields = ('title',)
 
+@admin.register(Chapter)
+class ChapterAdmin(admin.ModelAdmin):
+    list_display = ('title', 'module', 'sequence_order')
+    list_filter = ('module__course__organization', 'module__course', 'module')
+    search_fields = ('title',)
+
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'module', 'sequence_order')
+    list_display = ('title', 'module', 'chapter', 'sequence_order')
     list_filter = ('module__course__organization', 'module__course', 'module')
     search_fields = ('title',)
 
