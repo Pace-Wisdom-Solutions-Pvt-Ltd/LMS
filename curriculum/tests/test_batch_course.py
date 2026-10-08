@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
+from datetime import date, timedelta
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -62,9 +63,9 @@ def test_enrollment_defaults_to_batch_course(setup_data):
     course = setup_data["course"]
     batch = Batch.objects.create(
         organization=org, 
-        name="Linked Batch", 
-        start_date="2026-04-01", 
-        end_date="2026-06-01"
+        name="Linked Batch",
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=60)
     )
     batch.courses.add(course)
     

@@ -59,11 +59,16 @@ abstract final class AppPalette {
   // Fixed, not brand-derived and not theme-derived: a code box reads as a
   // terminal in either mode, and tinting it with an arbitrary admin-chosen
   // hex would wreck the only place in the app where whitespace is meaning.
-  static const Color codeBackground = Color(0xFF0A1422);
-  static const Color codeGutter = Color(0xFF08111D);
-  static const Color codeLine = Color(0xFF1C2A3D);
-  static const Color codeText = Color(0xFFD8E4F2);
-  static const Color codeMuted = Color(0xFF50627A);
+  //
+  // White on black, literally. [codeGutter] is lifted off the black just far
+  // enough to separate the numbers from the code, [codeLine] rules between the
+  // two and edges the read-only blocks, and [codeMuted] — line numbers and the
+  // hint — is the one grey, dim against the text but still legible on black.
+  static const Color codeBackground = Color(0xFF000000);
+  static const Color codeGutter = Color(0xFF0D0D0D);
+  static const Color codeLine = Color(0xFF2A2A2A);
+  static const Color codeText = Color(0xFFFFFFFF);
+  static const Color codeMuted = Color(0xFF8A8A8A);
 }
 
 /// WCAG contrast ratio between two colours.

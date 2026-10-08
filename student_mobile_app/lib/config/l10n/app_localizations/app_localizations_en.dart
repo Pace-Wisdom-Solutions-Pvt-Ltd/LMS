@@ -292,9 +292,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kindTask => 'Task';
 
   @override
-  String get kindCoding => 'Coding';
-
-  @override
   String get claimCertificate => 'Claim your certificate';
 
   @override
@@ -391,176 +388,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'This assessment cannot be taken in the app. Open it on the LMS website.';
 
   @override
-  String get openCoding => 'Open coding exercise';
-
-  @override
-  String get codingTitle => 'Coding practice';
-
-  @override
-  String codingProblems(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count problems',
-      one: '1 problem',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String codingProblemOf(int index, int count) {
-    return 'Problem $index of $count';
-  }
-
-  @override
-  String get codingOpenAction => 'Start coding';
-
-  @override
-  String get codingContinueAction => 'Continue coding';
-
-  @override
-  String get codingNoProblems =>
-      'There are no coding problems on this lesson yet.';
-
-  @override
-  String get codingSolved => 'Solved';
-
-  @override
-  String get codingStatement => 'Problem';
-
-  @override
-  String get codingInputFormat => 'Input format';
-
-  @override
-  String get codingOutputFormat => 'Output format';
-
-  @override
-  String get codingSamples => 'Sample cases';
-
-  @override
-  String codingCase(int index) {
-    return 'Case $index';
-  }
-
-  @override
-  String get codingSampleInput => 'Input';
-
-  @override
-  String get codingSampleOutput => 'Expected output';
-
-  @override
-  String get codingYourOutput => 'Your output';
-
-  @override
-  String get codingOutput => 'Output';
-
-  @override
-  String get codingLanguage => 'Language';
-
-  @override
-  String get codingEditorLabel => 'Your solution';
-
-  @override
-  String get codingEditorHint => 'Write your solution here';
-
-  @override
-  String get codingCustomInput => 'Run with my own input';
-
-  @override
-  String get codingCustomInputHint =>
-      'Input to run against instead of the samples';
-
-  @override
-  String get codingRun => 'Run';
-
-  @override
-  String get codingRunning => 'Running…';
-
-  @override
-  String get codingSubmit => 'Submit';
-
-  @override
-  String get codingGrading => 'Grading…';
-
-  @override
-  String get codingRunNotGraded =>
-      'A run is not graded. Submit when you are happy with it.';
-
-  @override
-  String get codingWriteCodeFirst => 'Write some code first.';
-
-  @override
-  String codingTimeLimit(int count) {
-    return '${count}s per case';
-  }
-
-  @override
-  String codingMemoryLimit(int count) {
-    return '$count MB';
-  }
-
-  @override
-  String get codingAccepted => 'Accepted';
-
-  @override
-  String get codingNotAccepted => 'Not accepted';
-
-  @override
-  String codingCasesPassed(int passed, int total) {
-    return '$passed of $total cases passed';
-  }
-
-  @override
-  String get codingStillGrading =>
-      'Still being graded. Open this again in a moment to see the result.';
-
-  @override
-  String codingScore(int score) {
-    return 'Score $score';
-  }
-
-  @override
-  String get codingCasePassed => 'Passed';
-
-  @override
-  String get codingCaseFailed => 'Failed';
-
-  @override
-  String get codingError => 'Error';
-
-  @override
-  String get codingAcceptedToast => 'Accepted · lesson complete';
-
-  @override
-  String get codingAllSolved => 'Every problem on this lesson is solved.';
-
-  @override
-  String get codingStarterLoading => 'Loading starter code…';
-
-  @override
   String get nothingToOpen => 'There is nothing to open in this lesson yet.';
-
-  @override
-  String get openTask => 'Open task';
 
   @override
   String get startQuiz => 'Start quiz';
 
   @override
-  String get openDocument => 'Open document';
-
-  @override
   String get openLink => 'Open link';
-
-  @override
-  String get autoCompleteNote =>
-      'This lesson completes itself once you reach the end.';
-
-  @override
-  String get markComplete => 'Mark as complete';
-
-  @override
-  String get lessonCompleted => 'Lesson complete';
 
   @override
   String get quizSubmit => 'Submit quiz';
@@ -641,7 +475,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskCodeHint => '// Paste your code here...';
 
   @override
-  String get taskFileLabel => 'PDF / Screenshot / File';
+  String get taskFileKindFile => 'File';
+
+  @override
+  String get taskFileKindPdf => 'PDF';
+
+  @override
+  String get taskFileKindScreenshot => 'Screenshot';
 
   @override
   String get taskUploadCta => 'Click to upload';

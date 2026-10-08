@@ -10,13 +10,20 @@ import 'package:lms/utils/app_exports.dart';
 /// org's logo. Kept as a separate widget because the splash and the sign-in
 /// backdrop use it directly, independent of whatever org is resolved.
 ///
+/// **The transparent variant, not the launcher one.** `app_logo.png` is
+/// matted onto a flat background because a launcher icon has to be — iOS
+/// rejects an alpha channel outright — and that matte is a visible tile
+/// wherever the mark sits on the app's own surface, which is most places it
+/// appears. `flutter_launcher_icons` keeps using `app_logo.png`; everything
+/// drawn inside the app uses this one.
+///
 /// **The format follows the file name**, so replacing [asset] with an `.svg`
 /// needs no code change. It used to point at an `assets/app_icon.svg` that was
 /// never added, which rendered nothing at all.
 class AppIcon extends StatelessWidget {
   const AppIcon({super.key, this.size = 44, this.opacity = 1});
 
-  static const String asset = 'assets/app_logo.png';
+  static const String asset = 'assets/app_logo_transparent.png';
 
   final double size;
 

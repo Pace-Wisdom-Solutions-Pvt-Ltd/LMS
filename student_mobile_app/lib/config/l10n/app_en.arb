@@ -114,7 +114,6 @@
   "filterCompleted": "Completed",
   "kindQuiz": "Quiz",
   "kindTask": "Task",
-  "kindCoding": "Coding",
   "claimCertificate": "Claim your certificate",
   "certificateReadyTitle": "Certificate ready",
   "certificateReadyBody": "Your certificate has been issued. Find it under Progress.",
@@ -169,110 +168,9 @@
   "viewTaskPage": "View task",
   "kindAssessment": "Assessment",
   "nodeAssessmentUnavailable": "This assessment cannot be taken in the app. Open it on the LMS website.",
-  "openCoding": "Open coding exercise",
-  "codingTitle": "Coding practice",
-  "codingProblems": "{count, plural, =1{1 problem} other{{count} problems}}",
-  "@codingProblems": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "codingProblemOf": "Problem {index} of {count}",
-  "@codingProblemOf": {
-    "placeholders": {
-      "index": {
-        "type": "int"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "codingOpenAction": "Start coding",
-  "codingContinueAction": "Continue coding",
-  "codingNoProblems": "There are no coding problems on this lesson yet.",
-  "codingSolved": "Solved",
-  "codingStatement": "Problem",
-  "codingInputFormat": "Input format",
-  "codingOutputFormat": "Output format",
-  "codingSamples": "Sample cases",
-  "codingCase": "Case {index}",
-  "@codingCase": {
-    "placeholders": {
-      "index": {
-        "type": "int"
-      }
-    }
-  },
-  "codingSampleInput": "Input",
-  "codingSampleOutput": "Expected output",
-  "codingYourOutput": "Your output",
-  "codingOutput": "Output",
-  "codingLanguage": "Language",
-  "codingEditorLabel": "Your solution",
-  "codingEditorHint": "Write your solution here",
-  "codingCustomInput": "Run with my own input",
-  "codingCustomInputHint": "Input to run against instead of the samples",
-  "codingRun": "Run",
-  "codingRunning": "Running…",
-  "codingSubmit": "Submit",
-  "codingGrading": "Grading…",
-  "codingRunNotGraded": "A run is not graded. Submit when you are happy with it.",
-  "codingWriteCodeFirst": "Write some code first.",
-  "codingTimeLimit": "{count}s per case",
-  "@codingTimeLimit": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "codingMemoryLimit": "{count} MB",
-  "@codingMemoryLimit": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "codingAccepted": "Accepted",
-  "codingNotAccepted": "Not accepted",
-  "codingCasesPassed": "{passed} of {total} cases passed",
-  "@codingCasesPassed": {
-    "placeholders": {
-      "passed": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "codingStillGrading": "Still being graded. Open this again in a moment to see the result.",
-  "codingScore": "Score {score}",
-  "@codingScore": {
-    "placeholders": {
-      "score": {
-        "type": "int"
-      }
-    }
-  },
-  "codingCasePassed": "Passed",
-  "codingCaseFailed": "Failed",
-  "codingError": "Error",
-  "codingAcceptedToast": "Accepted \u00b7 lesson complete",
-  "codingAllSolved": "Every problem on this lesson is solved.",
-  "codingStarterLoading": "Loading starter code\u2026",
   "nothingToOpen": "There is nothing to open in this lesson yet.",
-  "openTask": "Open task",
   "startQuiz": "Start quiz",
-  "openDocument": "Open document",
   "openLink": "Open link",
-  "autoCompleteNote": "This lesson completes itself once you reach the end.",
-  "markComplete": "Mark as complete",
-  "lessonCompleted": "Lesson complete",
   "quizSubmit": "Submit quiz",
   "quizNext": "Next",
   "quizPrevious": "Previous",
@@ -298,7 +196,9 @@
   "taskOpenAttachment": "Open the attached file",
   "taskCodeLabel": "Code",
   "taskCodeHint": "// Paste your code here...",
-  "taskFileLabel": "PDF / Screenshot / File",
+  "taskFileKindFile": "File",
+  "taskFileKindPdf": "PDF",
+  "taskFileKindScreenshot": "Screenshot",
   "taskUploadCta": "Click to upload",
   "taskOr": "OR",
   "taskSubmit": "Upload submission",

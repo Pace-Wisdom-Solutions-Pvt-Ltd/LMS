@@ -9,9 +9,9 @@ import 'package:lms/utils/app_exports.dart';
 /// inside depends on the node:
 ///  * learning material — the document button, or the video, played here;
 ///  * a quiz — its name and timer, with Start pushing the quiz screen;
-///  * a task or coding questions — a button that leaves, and
-///    the roadmap reloads when the learner comes back, because completion
-///    happened out of this screen's sight.
+///  * a task — a button that leaves, and the roadmap reloads when the
+///    learner comes back, because completion happened out of this screen's
+///    sight.
 class RoadmapScreen extends StatelessWidget {
   const RoadmapScreen({super.key, required this.courseId, this.resumeNodeId});
 
@@ -48,10 +48,10 @@ class _RoadmapViewState extends State<_RoadmapView> with RouteAware {
     if (route != null) appRouteObserver.subscribe(this, route);
   }
 
-  /// The roadmap has been uncovered: a task, quiz or coding screen
-  /// has just closed, and whatever happened up there happened out of this
-  /// screen's sight. Reload — only the server knows what a submission
-  /// completed and what that unlocked.
+  /// The roadmap has been uncovered: a task or quiz screen has just closed,
+  /// and whatever happened up there happened out of this screen's sight.
+  /// Reload — only the server knows what a submission completed and what that
+  /// unlocked.
   ///
   /// This replaces `await push(); refresh();` at each call site, which looked
   /// right and silently did nothing whenever the pushed screen replaced itself
@@ -470,7 +470,6 @@ class _NodeRow extends StatelessWidget {
           : '${context.l10n.kindQuiz} · ${context.l10n.rulesQuestions(count)}';
     }
     if (node.hasTask) return context.l10n.kindTask;
-    if (node.hasCodingQuestions) return context.l10n.kindCoding;
     if (node.hasAssessment) return context.l10n.kindAssessment;
     return node.description.trim();
   }
@@ -629,7 +628,6 @@ class _Marker extends StatelessWidget {
     final IconData kind = switch (node) {
       final RoadmapNode n when n.hasQuiz => Icons.help_outline_rounded,
       final RoadmapNode n when n.hasTask => Icons.assignment_outlined,
-      final RoadmapNode n when n.hasCodingQuestions => Icons.code_rounded,
       final RoadmapNode n when n.hasAssessment => Icons.fact_check_outlined,
       _ => Icons.description_outlined,
     };
@@ -733,11 +731,9 @@ class _NodeBody extends StatelessWidget {
     // is nothing here to tap at all.
     if (vm.isRefreshing(node.id)) return const _NodeUpdating();
 
-    // A quiz arrives complete on the roadmap, and an exam or coding
-    // exercise needs nothing from the node endpoint — only material and tasks
-    // do, so only they wait on it.
+    // A quiz arrives complete on the roadmap, and an exam needs nothing from
+    // the node endpoint — only material and tasks do, so only they wait on it.
     if (node.hasQuiz) return _QuizStart(node: node);
-    if (node.hasCodingQuestions) return _CodingStart(node: node);
     if (node.hasAssessment) return const _AssessmentStart();
     // `has_task` is enough to offer the button; the task screen fetches the
     // detail it needs, so the roadmap does not pay for a copy it only reads
@@ -875,8 +871,8 @@ class _MaterialBody extends StatelessWidget {
         else if (m.isVideo)
           InlineVideo(
             material: m,
-            // The same 90% rule as the standalone lesson screen: the button
-            // below is a fallback, not the primary path.
+            // 90% watched completes the node; the button below is a
+            // fallback, not the primary path.
             onProgress: (double value) {
               if (value >= 0.9) vm.complete(node.id);
             },
@@ -1094,101 +1090,6 @@ class _AssessmentStart extends StatelessWidget {
     context.l10n.nodeAssessmentUnavailable,
     style: context.text.bodySmall,
   );
-}
-
-/// Coding problems: named here from the roadmap's own embedded copy, solved on
-/// a screen of their own.
-///
-/// The roadmap carries `problem_name` and the authored language for every
-/// problem, so the row can list them without a second call; only `description`
-/// and `allowed_languages` need the coding-questions endpoint, which
-/// [CodingScreen] calls for itself. The roadmap reloads when this closes,
-/// because an accepted submission can complete the node and unlock the next.
-class _CodingStart extends StatelessWidget {
-  const _CodingStart({required this.node});
-
-  final RoadmapNode node;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<CodingQuestion> problems = node.codingQuestions;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        if (problems.isNotEmpty) ...<Widget>[
-          Text(
-            context.l10n.codingProblems(problems.length),
-            style: context.text.labelSmall?.copyWith(
-              color: context.brand.muted,
-            ),
-          ),
-          for (int i = 0; i < problems.length; i++) ...<Widget>[
-            const SizedBox(height: AppSpace.sm),
-            _ProblemRow(number: i + 1, question: problems[i]),
-          ],
-          const SizedBox(height: AppSpace.md),
-        ],
-        AppButton(
-          label: node.isCompleted
-              ? context.l10n.codingContinueAction
-              : context.l10n.codingOpenAction,
-          icon: Icons.code_rounded,
-          onPressed: () => _open(context),
-        ),
-      ],
-    );
-  }
-
-  void _open(BuildContext context) {
-    final RoadmapViewModel vm = context.read<RoadmapViewModel>();
-    context.pushNamed(
-      AppRouteNames.coding,
-      pathParameters: <String, String>{
-        'courseId': '${vm.courseId}',
-        'moduleId': '${node.moduleId}',
-        'nodeId': '${node.id}',
-      },
-      queryParameters: <String, String>{'title': node.title},
-    );
-  }
-}
-
-class _ProblemRow extends StatelessWidget {
-  const _ProblemRow({required this.number, required this.question});
-
-  final int number;
-  final CodingQuestion question;
-
-  @override
-  Widget build(BuildContext context) {
-    final String language = question.programmingLanguage.trim();
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          '$number.',
-          style: tabular(
-            context.text.bodySmall!.copyWith(color: context.brand.muted),
-          ),
-        ),
-        const SizedBox(width: AppSpace.sm),
-        Expanded(
-          child: Text(
-            question.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: context.text.bodyMedium,
-          ),
-        ),
-        if (language.isNotEmpty) ...<Widget>[
-          const SizedBox(width: AppSpace.sm),
-          AppChip(label: CodingLanguage.labelFor(language)),
-        ],
-      ],
-    );
-  }
 }
 
 /// First-load placeholder, shaped like the header and the first two modules.

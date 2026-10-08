@@ -101,7 +101,7 @@ This repository is the **Community edition**: free, open source and self-hosted.
 |---|---|---|
 | Backend REST API | repository root | Python 3.13, Django 6, Django REST Framework, Celery |
 | Web frontend | [`frontend/`](frontend/) | React 19, TypeScript, Vite, Tailwind CSS 4 |
-| Student mobile app | [`student_mobile_app/`](student_mobile_app/) | Flutter (Android & iOS) |
+| Student mobile app | [`student_mobile_app/`](student_mobile_app/) | Flutter (Android & iOS), learner-only: courses, lessons, tasks, quizzes and progress against the same API |
 
 ---
 
@@ -234,7 +234,7 @@ cp .env.example .env   # set VITE_API_BASE_URL, e.g. http://localhost:8000/api
 npm run dev            # http://localhost:5173
 ```
 
-The full frontend guide lives in [`frontend/README.md`](frontend/README.md), and the mobile app guide in [`student_mobile_app/README.md`](student_mobile_app/README.md).
+The full frontend guide lives in [`frontend/README.md`](frontend/README.md). The mobile app guide, covering Flutter setup, its one environment variable, architecture, and building and releasing, lives in [`student_mobile_app/README.md`](student_mobile_app/README.md).
 
 </details>
 
@@ -343,7 +343,7 @@ All settings are read from environment variables (or a `.env` file). Copy [`.env
 | Levels & chapters | Organise a course into levels, and each level into chapters that group related steps. | 🆓 |
 | Learning resources | Attach videos, documents, PDFs or links, with focus areas and a quick outline. | 🆓 |
 | Tasks | Assignments with allowed submission formats (link, text, PDF, screenshot, code, file). | 🆓 |
-| Quizzes | Scored multiple-choice quizzes, with an optional timer. | 🆓 |
+| Quizzes | Scored multiple-choice quizzes with a pass mark (default 70%) and an optional timer. | 🆓 |
 | Prerequisites & sequential unlocking | Steps unlock in order; a step stays locked until its prerequisite is done. | 🆓 |
 | Reorder, edit & delete curriculum 🟡 | Change the order of chapters and steps, and modify or remove them. | 🆓 |
 | Coding question sets | Problems in Python, JavaScript, Java, C/C++, C# and SQL, with AI-generated test cases and starter code. | 💎 |
@@ -459,8 +459,8 @@ For architecture details, multi-tenancy flowcharts and the full endpoint referen
 | Spreadsheets | pandas, openpyxl, xlrd (bulk uploads and Excel exports) |
 | API docs | OpenAPI 3 via `drf-spectacular` (Swagger UI and ReDoc) |
 | Web frontend | React 19, TypeScript, Vite, React Router, Tailwind CSS 4 |
-| Mobile | Flutter (Android & iOS) |
-| Tests | pytest, pytest-django, pytest-cov · Vitest · Flutter test |
+| Mobile | Flutter (Dart 3.13), MVVM + Provider, go_router, Dio, Hive |
+| Tests | pytest, pytest-django, pytest-cov (backend) · Vitest (frontend) · `flutter test` (mobile) |
 
 <details>
 <summary><b>Project structure</b></summary>
@@ -477,15 +477,15 @@ For architecture details, multi-tenancy flowcharts and the full endpoint referen
 ├── analytics/           # Admin / trainer / student dashboards and daily metrics
 ├── gamification/        # Points & levels
 ├── settings/            # Shared Amazon SES client
-├── frontend/            # React 19 + TypeScript + Vite web app
-├── student_mobile_app/  # Flutter learner app for Android & iOS
+├── frontend/            # React 19 + TypeScript + Vite web app (docs: frontend/README.md)
+├── student_mobile_app/  # Flutter learner app for Android and iOS (docs: student_mobile_app/README.md)
 ├── Dockerfile           # Backend API image
 ├── docker-compose.yml   # Full local stack: Postgres, Redis, API, Celery worker, frontend
 ├── pyproject.toml       # Poetry dependencies + pytest / coverage config
 └── requirements.txt     # pip dependencies (used by the Dockerfile)
 ```
 
-Each backend app has its own `README.md` with deeper notes.
+Each backend app has its own `README.md` with deeper notes. The frontend is documented in [`frontend/README.md`](frontend/README.md) and the mobile app in [`student_mobile_app/README.md`](student_mobile_app/README.md).
 
 </details>
 
@@ -554,7 +554,7 @@ docker run -d -p 8000:8000 --env-file .env lms-backend
 | Learning content | SCORM / xAPI import · native video hosting with watch progress · discussion threads per chapter |
 | Assessment depth | Advanced proctoring · question bank with tags & random pools · rubric grading · skill-wise score breakdown |
 | Reporting & compliance | Mandatory training compliance tracking · data export, account deletion & retention (GDPR / DPDP) |
-| Platform | Custom subdomains & white-label email · subscription plans & usage limits · public API keys & webhooks · SAML SSO / SCIM |
+| Platform | Custom subdomains & white-label email · subscription plans & usage limits · public API keys & webhooks · SAML SSO / SCIM · PWA with offline reading |
 | Learner experience | Course catalogue with self-enrolment · learning paths across courses · notes & bookmarks · multi-language UI |
 
 </details>

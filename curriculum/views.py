@@ -1131,11 +1131,13 @@ class NodeContentUpdateAPIView(APIView):
                 is_correct=(current_label in normalized_labels)
             )
 
-    def _create_single_quiz(self, node, quiz_name, quick_text, fixed_options, extra_options, correct_labels, allow_multiple, questions_input, timer_minutes=None):
+    def _create_single_quiz(self, node, quiz_name, quick_text, fixed_options, extra_options, correct_labels, allow_multiple, questions_input, timer_minutes=None, passing_percentage=None):
+        quiz_fields = {'passing_percentage': passing_percentage} if passing_percentage is not None else {}
         quiz = Quiz.objects.create(
             node=node,
             name=quiz_name or 'Lesson Quiz',
             timer_minutes=timer_minutes,
+            **quiz_fields,
         )
 
         if quick_text:
@@ -1176,6 +1178,7 @@ class NodeContentUpdateAPIView(APIView):
         return {
             'name': validated_data.get('quiz_name'),
             'timer': validated_data.get('quiz_timer_minutes'),
+            'passing_percentage': validated_data.get('quiz_passing_percentage'),
             'text': validated_data.get('quiz_question_text'),
             'fixed': [
                 validated_data.get('quiz_option_a'),
@@ -1204,6 +1207,7 @@ class NodeContentUpdateAPIView(APIView):
                 node, qd['name'], qd['text'], qd['fixed'], qd['extra'],
                 qd['labels'], qd['multiple'], qd['questions'],
                 timer_minutes=qd['timer'],
+                passing_percentage=qd['passing_percentage'],
             )
 
         for quiz_data in qd['quizzes']:
@@ -1215,6 +1219,7 @@ class NodeContentUpdateAPIView(APIView):
                 False,
                 quiz_data.get('questions', []),
                 timer_minutes=quiz_data.get('timer_minutes'),
+                passing_percentage=quiz_data.get('passing_percentage'),
             )
 
         node.refresh_from_db()
@@ -1874,6 +1879,37 @@ class CompleteNodeAPIView(APIView):
                 return True
         return False
 
+    def _check_task_approved(self, node, user):
+        task = getattr(node, 'task', None)
+        if task is None or task.is_deleted:
+            return True
+        return TaskSubmission.objects.filter(
+            Q(student=user) | Q(student__user=user),
+            task=task,
+            status__in=['Approved', 'Graded']
+        ).exists()
+
+    def _check_quizzes_passed(self, node, user):
+        for quiz in node.quizzes.all():
+            passed = QuizSubmission.objects.filter(
+                Q(student=user) | Q(student__user=user),
+                quiz=quiz,
+                status='Passed'
+            ).exists()
+            if not passed:
+                return False
+        return True
+
+    def _unmet_requirement_detail(self, node, user):
+        """Return an error message for the first requirement the student has not met, or None."""
+        if not self._check_assessment_passed(node, user):
+            return 'Cannot complete node with pending assessment.'
+        if not self._check_task_approved(node, user):
+            return 'Cannot complete node until the task submission is approved.'
+        if not self._check_quizzes_passed(node, user):
+            return 'Cannot complete node until all quizzes are passed.'
+        return None
+
     def post(self, request, node_id):
         node = get_object_or_404(Node, id=node_id)
 
@@ -1881,8 +1917,9 @@ class CompleteNodeAPIView(APIView):
         if error_response is not None:
             return Response(error_response, status=status.HTTP_403_FORBIDDEN)
 
-        if not self._check_assessment_passed(node, request.user):
-            return Response({'detail': 'Cannot complete node with pending assessment.'}, status=status.HTTP_400_BAD_REQUEST)
+        unmet_detail = self._unmet_requirement_detail(node, request.user)
+        if unmet_detail:
+            return Response({'detail': unmet_detail}, status=status.HTTP_400_BAD_REQUEST)
 
         if StudentNodeProgress.objects.filter(
             Q(student=request.user) | Q(student__user=request.user),

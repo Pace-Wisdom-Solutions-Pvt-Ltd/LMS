@@ -211,6 +211,30 @@ npm run dev
 ```
 See [`frontend/README.md`](frontend/README.md) for architecture, testing, and conventions.
 
+### Step 10: Run the Mobile App
+The learner app is a separate Flutter project under [`student_mobile_app/`](student_mobile_app/):
+```bash
+cd student_mobile_app
+cp .env.example .env   # set API_BASE_URL to http://localhost:8000  (no /api, no trailing slash)
+flutter pub get
+cd ios && pod install && cd ..   # iOS only, and only after `pub get`
+flutter run
+```
+**An emulator or a real device has to be connected before `flutter run`** — an Android
+emulator, an iOS simulator, or a phone plugged in with developer mode on. Check what
+Flutter can see with `flutter devices`, and pick one with `flutter run -d <id>` when more
+than one is attached.
+
+`cp .env.example .env` is not optional: the file is bundled as an asset, so the build fails
+without it. `API_BASE_URL` is the server root and the app appends `/api` itself — unlike the
+frontend's `VITE_API_BASE_URL`, which includes it.
+
+An emulator cannot reach your machine's `localhost`: use `10.0.2.2` on the Android emulator,
+and your machine's LAN IP on a real device.
+
+See [`student_mobile_app/README.md`](student_mobile_app/README.md) for architecture,
+testing, and release builds.
+
 ---
 
 ## 5. Interactive API Documentation

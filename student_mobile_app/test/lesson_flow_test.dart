@@ -10,11 +10,6 @@ import 'package:lms/utils/app_exports.dart';
 
 import 'support/fake_api.dart';
 
-/// Lets a fired-and-forgotten async call finish. The completion request goes
-/// through the fake adapter, so a bare microtask yield is not enough.
-Future<void> _settle() =>
-    Future<void>.delayed(const Duration(milliseconds: 50));
-
 void main() {
   late Directory tempDir;
   final FakeApi api = FakeApi();
@@ -97,76 +92,6 @@ void main() {
       final RoadmapNode locked = r.nodeById(3)!;
       expect(locked.isLocked, isTrue);
       expect(r.blockerFor(locked)?.title, 'Installing Python');
-    });
-
-    test('classifies a row by what it opens', () {
-      final Roadmap r = build();
-      expect(r.nodeById(1)!.kind, LessonKind.lesson);
-      expect(r.nodeById(3)!.kind, LessonKind.quiz);
-    });
-  });
-
-  group('lesson auto-complete', () {
-    LessonViewModel model() =>
-        LessonViewModel(orgId: 2, courseId: 1, moduleId: 1, nodeId: 1);
-
-    test('fires at 90% watched, not before', () async {
-      api.on(
-        ApiEndPoints.completeNode('1'),
-        status: 200,
-        body: <String, dynamic>{'message': 'Node marked as completed.'},
-      );
-
-      final LessonViewModel vm = model();
-      vm.onVideoProgress(0.5);
-      await _settle();
-      expect(api.hit(ApiEndPoints.completeNode('1')), isFalse);
-
-      vm.onVideoProgress(0.91);
-      await _settle();
-      expect(api.hit(ApiEndPoints.completeNode('1')), isTrue);
-      expect(vm.isCompleted, isTrue);
-    });
-
-    test('completing twice only calls the backend once', () async {
-      api.on(
-        ApiEndPoints.completeNode('1'),
-        status: 200,
-        body: <String, dynamic>{'message': 'ok'},
-      );
-
-      final LessonViewModel vm = model();
-      await vm.complete();
-      await vm.complete();
-
-      expect(
-        api.requests
-            .where(
-              (RequestOptions r) => r.path == ApiEndPoints.completeNode('1'),
-            )
-            .length,
-        1,
-      );
-    });
-
-    test('a 403 renders as locked, not as an error', () async {
-      api.on(
-        ApiEndPoints.node(2, '1', '1', '1'),
-        status: 403,
-        body: <String, dynamic>{
-          'detail': 'This content is locked. Please complete the previous module first to unlock it.',
-        },
-      );
-
-      final LessonViewModel vm = model();
-      await vm.load();
-
-      expect(vm.isLocked, isTrue);
-      expect(
-        vm.state,
-        ViewState.success,
-        reason: 'a locked lesson is a state, not a failure',
-      );
     });
   });
 

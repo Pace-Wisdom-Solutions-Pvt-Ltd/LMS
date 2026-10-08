@@ -29,7 +29,6 @@ void main() {
     bool task = false,
     bool quiz = false,
     bool assessment = false,
-    bool coding = false,
     bool completed = false,
     bool accessible = true,
     int? prerequisite,
@@ -53,7 +52,6 @@ void main() {
     'has_task': task,
     'has_quiz': quiz,
     'has_assessment': assessment,
-    'has_coding_questions': coding,
     'quizzes': quiz
         ? <dynamic>[
             <String, dynamic>{
@@ -86,7 +84,6 @@ void main() {
         : null,
     'is_completed': completed,
     'is_accessible': accessible,
-    'coding_questions': <dynamic>[],
   };
 
   Map<String, dynamic> roadmapBody(List<Map<String, dynamic>> nodes) =>
@@ -156,7 +153,6 @@ void main() {
         node(id: 2, task: true, accessible: false),
         node(id: 3, quiz: true, accessible: false),
         node(id: 4, assessment: true, accessible: false),
-        node(id: 5, coding: true, accessible: false),
       ]);
 
       final Roadmap r = vm.roadmap!;
@@ -168,7 +164,6 @@ void main() {
         isTrue,
         reason: 'has_assessment was previously dropped at the model boundary',
       );
-      expect(r.nodeById(5)!.hasCodingQuestions, isTrue);
     });
 
     test('carries the quiz in full, so Start needs no second call', () async {
@@ -208,10 +203,9 @@ void main() {
       final RoadmapViewModel vm = await loaded(<Map<String, dynamic>>[
         node(id: 1, quiz: true),
         node(id: 2, assessment: true),
-        node(id: 3, coding: true),
       ]);
 
-      for (final int id in <int>[1, 2, 3]) {
+      for (final int id in <int>[1, 2]) {
         await vm.toggle(vm.roadmap!.nodeById(id)!);
       }
 
@@ -604,8 +598,8 @@ void main() {
 
   group('fields the models were dropping', () {
     test('focus areas and quick outline are read off the roadmap', () async {
-      // Both ride on the roadmap payload, so a quiz or coding row — which
-      // never calls the node endpoint — can still show them.
+      // Both ride on the roadmap payload, so a quiz row — which never calls
+      // the node endpoint — can still show them.
       final RoadmapViewModel vm = await loaded(<Map<String, dynamic>>[
         node(
           id: 1,

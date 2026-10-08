@@ -18,10 +18,6 @@ class LessonNode {
   final TaskDetail? task;
   final List<Quiz> quizzes;
 
-  /// Coding problems in full — this is the only shape that carries
-  /// `description` and `allowed_languages`, which the roadmap's copy omits.
-  final List<CodingQuestion> codingQuestions;
-
   const LessonNode({
     required this.id,
     required this.moduleId,
@@ -32,17 +28,9 @@ class LessonNode {
     this.material,
     this.task,
     this.quizzes = const <Quiz>[],
-    this.codingQuestions = const <CodingQuestion>[],
   });
 
   Quiz? get quiz => quizzes.isEmpty ? null : quizzes.first;
-
-  LessonKind get kind {
-    if (quizzes.isNotEmpty) return LessonKind.quiz;
-    if (task != null) return LessonKind.task;
-    if (codingQuestions.isNotEmpty) return LessonKind.coding;
-    return LessonKind.lesson;
-  }
 
   factory LessonNode.fromJson(Map<String, dynamic> json) => LessonNode(
     id: int.tryParse('${json['id']}') ?? -1,
@@ -66,7 +54,6 @@ class LessonNode {
               Quiz.fromJson(Map<String, dynamic>.from(e)),
         )
         .toList(),
-    codingQuestions: CodingQuestion.listFrom(json['coding_questions']),
   );
 }
 
