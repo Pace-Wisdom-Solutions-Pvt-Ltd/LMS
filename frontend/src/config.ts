@@ -85,12 +85,30 @@ export const config = {
             nodes: {
               list: (orgId: string, courseId: string | number, moduleId: string | number) =>
                 `/organizations/${orgId}/courses/${courseId}/modules/${moduleId}/nodes/`,
+              reorder: (orgId: string, courseId: string | number, moduleId: string | number) =>
+                `/organizations/${orgId}/courses/${courseId}/modules/${moduleId}/nodes/reorder/`,
               detail: (
                 orgId: string,
                 courseId: string | number,
                 moduleId: string | number,
                 nodeId: string | number
               ) => `/organizations/${orgId}/courses/${courseId}/modules/${moduleId}/nodes/${nodeId}/`,
+            },
+            chapters: {
+              list: (orgId: string, courseId: string | number, moduleId: string | number) =>
+                `/organizations/${orgId}/courses/${courseId}/modules/${moduleId}/chapters/`,
+              detail: (
+                orgId: string,
+                courseId: string | number,
+                moduleId: string | number,
+                chapterId: string | number
+              ) => `/organizations/${orgId}/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}/`,
+              reorder: (
+                orgId: string,
+                courseId: string | number,
+                moduleId: string | number,
+                chapterId: string | number
+              ) => `/organizations/${orgId}/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}/nodes/reorder/`,
             },
           },
           roadmap: (orgId: string, courseId: string | number) =>

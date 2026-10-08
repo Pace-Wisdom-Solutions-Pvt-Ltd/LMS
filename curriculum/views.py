@@ -22,13 +22,13 @@ from organizations.models import Organization, OrganizationMember, Batch, BatchS
 from accounts.models import User
 from organizations.permissions import IsOrgAdmin, IsOrgAdminOrTeacher
 from .models import (
-    Course, Module, Node, LearningMaterial,
+    Course, Module, Chapter, Node, LearningMaterial,
     Assessment, AssignmentSubmission, StudentNodeProgress, Task, Quiz,
     QuizQuestion, QuizOption, TaskSubmission, QuizSubmission,
 )
 from .permissions import IsCourseAdminOrTeacher
 from .serializers import (
-    CourseSerializer, ModuleSerializer, NodeSerializer,
+    CourseSerializer, ModuleSerializer, ChapterSerializer, NodeSerializer,
     LearningMaterialSerializer, TaskSerializer,
     RoadmapCourseSerializer,
     NodeContentUpdateSerializer,
@@ -766,6 +766,128 @@ class ModuleDetailAPIView(APIView):
 
 
 @extend_schema(tags=['Courses'])
+class ChapterListCreateAPIView(APIView):
+    permission_classes = [IsCourseAdminOrTeacher]
+
+    def _get_module(self, request, org_id, course_id, module_id):
+        module = get_object_or_404(Module, id=module_id, course_id=course_id, course__organization_id=org_id)
+        self.check_object_permissions(request, module)
+        return module
+
+    @extend_schema(summary="List Chapters in Module", responses={200: ChapterSerializer(many=True)})
+    def get(self, request, org_id, course_id, module_id):
+        module = self._get_module(request, org_id, course_id, module_id)
+        return Response(ChapterSerializer(module.chapters.all(), many=True).data)
+
+    @extend_schema(summary="Create Chapter", request=ChapterSerializer, responses={201: ChapterSerializer})
+    def post(self, request, org_id, course_id, module_id):
+        module = self._get_module(request, org_id, course_id, module_id)
+        serializer = ChapterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(module=module)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class _ChapterLookupMixin:
+    permission_classes = [IsCourseAdminOrTeacher]
+
+    def _get_chapter(self, request, org_id, course_id, module_id, chapter_id):
+        chapter = get_object_or_404(
+            Chapter, id=chapter_id, module_id=module_id,
+            module__course_id=course_id, module__course__organization_id=org_id,
+        )
+        self.check_object_permissions(request, chapter)
+        return chapter
+
+
+@extend_schema(tags=['Courses'])
+class ChapterDetailAPIView(_ChapterLookupMixin, APIView):
+
+    @extend_schema(summary="Retrieve Chapter", responses={200: ChapterSerializer})
+    def get(self, request, org_id, course_id, module_id, chapter_id):
+        chapter = self._get_chapter(request, org_id, course_id, module_id, chapter_id)
+        return Response(ChapterSerializer(chapter).data)
+
+    @extend_schema(summary="Update Chapter (Partial)", request=ChapterSerializer, responses={200: ChapterSerializer})
+    def patch(self, request, org_id, course_id, module_id, chapter_id):
+        chapter = self._get_chapter(request, org_id, course_id, module_id, chapter_id)
+        serializer = ChapterSerializer(chapter, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @extend_schema(summary="Delete Chapter (and its nodes)", responses={204: None})
+    def delete(self, request, org_id, course_id, module_id, chapter_id):
+        chapter = self._get_chapter(request, org_id, course_id, module_id, chapter_id)
+        with transaction.atomic():
+            chapter.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+_NODE_REORDER_REQUEST = inline_serializer(
+    'NodeReorder', {'node_ids': serializers.ListField(child=serializers.IntegerField())}
+)
+
+
+def _reordered_nodes_response(request, nodes):
+    nodes = nodes.select_related('learning_material', 'task').prefetch_related('quizzes__questions__options')
+    return Response(NodeSerializer(nodes, many=True, context={'request': request}).data)
+
+
+@extend_schema(tags=['Courses'])
+class ChapterNodeReorderAPIView(_ChapterLookupMixin, APIView):
+    @extend_schema(
+        summary="Reorder Nodes in Chapter",
+        description="Pass every node id in the chapter, top to bottom. Updates order and unlock chain atomically.",
+        request=_NODE_REORDER_REQUEST,
+        responses={200: NodeSerializer(many=True)},
+    )
+    def post(self, request, org_id, course_id, module_id, chapter_id):
+        chapter = self._get_chapter(request, org_id, course_id, module_id, chapter_id)
+        node_ids = request.data.get('node_ids')
+        current_ids = set(chapter.nodes.values_list('id', flat=True))
+        if not isinstance(node_ids, list) or len(node_ids) != len(current_ids) or set(node_ids) != current_ids:
+            return Response(
+                {'node_ids': 'Must list every node in this chapter exactly once.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        from curriculum.utils import apply_node_order
+        apply_node_order(chapter.module_id, node_ids)
+        return _reordered_nodes_response(request, chapter.nodes.all())
+
+
+@extend_schema(tags=['Courses'])
+class ModuleNodeReorderAPIView(APIView):
+    permission_classes = [IsCourseAdminOrTeacher]
+
+    @extend_schema(
+        summary="Reorder Nodes in Module",
+        description=(
+            "Pass node ids top to bottom. Listed nodes swap among the positions they "
+            "already hold (a subset is fine); nodes stay grouped by chapter."
+        ),
+        request=_NODE_REORDER_REQUEST,
+        responses={200: NodeSerializer(many=True)},
+    )
+    def post(self, request, org_id, course_id, module_id):
+        module = get_object_or_404(Module, id=module_id, course_id=course_id, course__organization_id=org_id)
+        self.check_object_permissions(request, module)
+        node_ids = request.data.get('node_ids')
+        from curriculum.utils import apply_node_order
+        if (
+            not isinstance(node_ids, list)
+            or not node_ids
+            or not all(isinstance(i, int) for i in node_ids)
+            or not apply_node_order(module.id, node_ids)
+        ):
+            return Response(
+                {'node_ids': 'Must be a list of distinct node ids from this module.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return _reordered_nodes_response(request, Node.objects.filter(module=module))
+
+
+@extend_schema(tags=['Courses'])
 class NodeCreateAPIView(APIView):
     permission_classes = [IsCourseAdminOrTeacher]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
@@ -791,7 +913,7 @@ class NodeCreateAPIView(APIView):
     def post(self, request, org_id, course_id, module_id):
         module = get_object_or_404(Module, id=module_id, course_id=course_id, course__organization_id=org_id)
         self.check_object_permissions(request, module)
-        serializer = NodeSerializer(data=request.data, context={'request': request})
+        serializer = NodeSerializer(data=request.data, context={'request': request, 'module': module})
         if serializer.is_valid():
             serializer.save(module=module)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -802,6 +924,12 @@ class NodeCreateAPIView(APIView):
 class NodeDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def _check_can_edit(self, request, node):
+        # GET is open to enrolled students; writes are for course admins/teachers only.
+        perm = IsCourseAdminOrTeacher()
+        if not (perm.has_permission(request, self) and perm.has_object_permission(request, self, node)):
+            self.permission_denied(request)
 
     @extend_schema(
         summary="Retrieve Node",
@@ -863,7 +991,7 @@ class NodeDetailAPIView(APIView):
     )
     def put(self, request, org_id, course_id, module_id, node_id):
         node = get_object_or_404(Node, id=node_id, module_id=module_id, module__course_id=course_id, module__course__organization_id=org_id)
-        self.check_object_permissions(request, node)
+        self._check_can_edit(request, node)
         serializer = NodeSerializer(node, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -877,7 +1005,7 @@ class NodeDetailAPIView(APIView):
     )
     def patch(self, request, org_id, course_id, module_id, node_id):
         node = get_object_or_404(Node, id=node_id, module_id=module_id, module__course_id=course_id, module__course__organization_id=org_id)
-        self.check_object_permissions(request, node)
+        self._check_can_edit(request, node)
         serializer = NodeSerializer(node, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -890,7 +1018,7 @@ class NodeDetailAPIView(APIView):
     )
     def delete(self, request, org_id, course_id, module_id, node_id):
         node = get_object_or_404(Node, id=node_id, module_id=module_id, module__course_id=course_id, module__course__organization_id=org_id)
-        self.check_object_permissions(request, node)
+        self._check_can_edit(request, node)
         node.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -1701,7 +1829,9 @@ class RoadmapRetrieveAPIView(APIView):
         course = get_object_or_404(
             Course.objects.prefetch_related(
                 'modules',
+                'modules__chapters',
                 'modules__nodes',
+                'modules__nodes__chapter',
                 'modules__nodes__learning_material',
                 'modules__nodes__assessment',
                 'modules__nodes__task',

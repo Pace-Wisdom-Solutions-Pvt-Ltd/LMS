@@ -13,29 +13,20 @@ import Input from "@/components/ui/Input";
 import ResourceContentField, {
   type ResourceContentType,
 } from "@/components/course/ResourceContentField";
-import type { SubmissionFormat } from "../store";
 import {
   SUBMISSION_FORMATS,
+  TASK_FORMAT_FIELDS,
   type NodeEditModalState,
 } from "./courseBuilderProgramHelpers";
 
-/** Maps a submission format id to its boolean field on {@link NodeEditModalState}. */
-const TASK_FORMAT_FIELDS = {
-  link: "taskAllowLink",
-  paragraph: "taskAllowParagraph",
-  pdf: "taskAllowPdf",
-  screenshot: "taskAllowScreenshot",
-  codeblock: "taskAllowCodeBlock",
-  file: "taskAllowFile",
-} as const satisfies Record<SubmissionFormat, keyof NodeEditModalState>;
 
 const TEXTAREA_CLASS =
   "w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal outline-none text-sm";
 
 export type ProgramModalState = {
   moduleId: string;
-  apiNodeId?: string;
-  localDraftClientId?: string;
+  /** Saved chapter being edited; absent when adding a new one. */
+  chapterId?: number;
   /** Local “no levels” course program id */
   flatProgramId?: string;
 };
@@ -50,16 +41,43 @@ export type LevelEditModalState = {
 };
 
 function programModalTitle(s: ProgramModalState): string {
-  if (s.apiNodeId) return "Edit Chapter";
-  if (s.localDraftClientId) return "Edit draft chapter";
+  if (s.chapterId) return "Edit Chapter";
   if (s.flatProgramId) return "Edit Chapter";
   return "Add Chapter";
 }
 
 function programSaveLabel(s: ProgramModalState): string {
-  return s.localDraftClientId || s.flatProgramId || s.apiNodeId
-    ? "Save"
-    : "Add";
+  return s.flatProgramId || s.chapterId ? "Save" : "Add";
+}
+
+function attachmentButtonLabel(newFile: File | null, currentUrl?: string | null): string {
+  if (newFile) return "Change file";
+  return currentUrl ? "Replace file" : "Choose file";
+}
+
+/** The picked file's name, else a link to the task's current attachment. */
+function AttachmentStatus({
+  newFile,
+  currentUrl,
+}: Readonly<{ newFile: File | null; currentUrl?: string | null }>) {
+  if (newFile) {
+    return (
+      <span className="text-xs text-slate-500 truncate max-w-[180px]">
+        {newFile.name}
+      </span>
+    );
+  }
+  if (!currentUrl) return null;
+  return (
+    <a
+      href={currentUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="text-xs text-brand-teal truncate max-w-[180px] hover:underline"
+    >
+      View current file →
+    </a>
+  );
 }
 
 // ── Add / Edit Chapter (program) ──────────────────────────────────────────
@@ -311,26 +329,9 @@ export function NodeEditTaskModal({
               variant="secondary"
               onClick={() => fileInputRef.current?.click()}
             >
-              {newFile
-                ? "Change file"
-                : state.taskAttachmentUrl
-                  ? "Replace file"
-                  : "Choose file"}
+              {attachmentButtonLabel(newFile, state.taskAttachmentUrl)}
             </Button>
-            {newFile ? (
-              <span className="text-xs text-slate-500 truncate max-w-[180px]">
-                {newFile.name}
-              </span>
-            ) : state.taskAttachmentUrl ? (
-              <a
-                href={state.taskAttachmentUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-brand-teal truncate max-w-[180px] hover:underline"
-              >
-                View current file →
-              </a>
-            ) : null}
+            <AttachmentStatus newFile={newFile} currentUrl={state.taskAttachmentUrl} />
           </div>
         </div>
         <div>

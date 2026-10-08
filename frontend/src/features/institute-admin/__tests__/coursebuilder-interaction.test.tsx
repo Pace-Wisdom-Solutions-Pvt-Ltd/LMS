@@ -77,6 +77,7 @@ import {
   updateCourseModuleApi,
   deleteCourseModuleApi,
   getModuleNodesApi,
+  createChapterApi,
 } from '@/lib/api/organizations'
 import type { ApiCourseModule } from '@/lib/api/organizations'
 import { showToast } from '@/lib/toastApi'
@@ -104,33 +105,15 @@ describe('InstituteAdminCourseBuilder – initial render', () => {
     vi.mocked(showToast).mockClear()
   })
 
-  it('renders "Back to Courses" button', async () => {
+  it.each([
+    ['"Back to Courses" button', ['Back to Courses']],
+    ['Course Details card heading', ['Course Details']],
+    ['Course Name and Status labels', ['Course Name', 'Status']],
+    ['Course Structure card', ['Course Structure', 'Add levels for this course']],
+  ])('renders %s', async (_label, texts) => {
     const { container } = renderBuilder()
     await waitFor(() => {
-      expect(within(container).getByText('Back to Courses')).toBeTruthy()
-    })
-  })
-
-  it('renders Course Details card heading', async () => {
-    const { container } = renderBuilder()
-    await waitFor(() => {
-      expect(within(container).getByText('Course Details')).toBeTruthy()
-    })
-  })
-
-  it('renders Course Name and Status labels', async () => {
-    const { container } = renderBuilder()
-    await waitFor(() => {
-      expect(within(container).getByText('Course Name')).toBeTruthy()
-      expect(within(container).getByText('Status')).toBeTruthy()
-    })
-  })
-
-  it('renders Course Structure card', async () => {
-    const { container } = renderBuilder()
-    await waitFor(() => {
-      expect(within(container).getByText('Course Structure')).toBeTruthy()
-      expect(within(container).getByText('Add levels for this course')).toBeTruthy()
+      for (const text of texts) expect(within(container).getByText(text)).toBeTruthy()
     })
   })
 
@@ -290,7 +273,7 @@ describe('InstituteAdminCourseBuilder – level drafts', () => {
     const removeBtns = within(container).getAllByLabelText('Remove level field')
     fireEvent.click(removeBtns[0])
     await waitFor(() => {
-      expect(within(container).getAllByPlaceholderText('e.g. Beginner').length).toBe(1)
+      expect(within(container).getAllByPlaceholderText('e.g. Beginner')).toHaveLength(1)
     })
   })
 
@@ -525,7 +508,7 @@ describe('InstituteAdminCourseBuilder – Levels & Programs card', () => {
     })
   })
 
-  it('adds a phase draft when valid title is entered', async () => {
+  it('saves a new chapter to the server when a valid title is entered', async () => {
     const { container } = renderBuilder()
     await waitFor(() => within(container).getByText('Add Chapter'))
     fireEvent.click(within(container).getByText('Add Chapter'))
@@ -539,12 +522,18 @@ describe('InstituteAdminCourseBuilder – Levels & Programs card', () => {
     const titleInput = Array.from(phaseInputsAll).find((el) => !el.type || el.type === 'text') as HTMLInputElement | undefined
 
     if (titleInput) {
-      fireEvent.change(titleInput, { target: { value: 'New Phase Draft' } })
+      fireEvent.change(titleInput, { target: { value: 'New Chapter' } })
       const addBtns = screen.getAllByRole('button', { name: 'Add' })
       fireEvent.click(addBtns[0])
       await waitFor(() => {
-        expect(vi.mocked(showToast)).toHaveBeenCalledWith('Phase added.', 'success')
+        expect(vi.mocked(showToast)).toHaveBeenCalledWith('Chapter added.', 'success')
       })
+      expect(vi.mocked(createChapterApi)).toHaveBeenCalledWith(
+        '1',
+        expect.anything(),
+        expect.anything(),
+        { title: 'New Chapter', description: '' },
+      )
     } else {
       // If input not found, just verify the modal was opened
       expect(screen.getByText('Chapter Title')).toBeTruthy()

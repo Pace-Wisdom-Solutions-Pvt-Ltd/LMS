@@ -13,12 +13,8 @@ export type ItemCreateContext = {
   orgId: string
   effectiveCourseId: string | number
   moduleId: string
-  /** Existing chapter (phase) node id; null when the chapter is an unsaved draft. */
-  phaseNodeId: number | null
-  /** Unsaved chapter details — its node is created lazily on the first item POST. */
-  phaseDraft?: { title: string; description: string }
-  /** Invoked once the draft chapter has been persisted, so the parent can drop it. */
-  onDraftCommitted?: () => void
+  /** Chapter (card) the new item belongs to; null puts it outside any chapter. */
+  chapterId: number | null
 }
 
 function resourceTypeToLabel(type: string): 'Link' | 'PDF' | 'Video' {
@@ -32,26 +28,6 @@ function resourceTypeToLabel(type: string): 'Link' | 'PDF' | 'Video' {
   }
 }
 
-/**
- * Resolve the node a new item should hang under. When the chapter is still an
- * unsaved draft, its root node is created first (once) so items nest inside the
- * chapter instead of landing at the module root; `onDraftCommitted` then lets the
- * caller clear the local draft. Returns undefined when there is no chapter at all
- * (item lands at module root).
- */
-async function resolvePrerequisiteNode(ctx: ItemCreateContext): Promise<number | undefined> {
-  if (ctx.phaseNodeId) return ctx.phaseNodeId
-  if (ctx.phaseDraft) {
-    const phase = await createModuleNodeApi(ctx.orgId, ctx.effectiveCourseId, ctx.moduleId, {
-      title: ctx.phaseDraft.title,
-      description: ctx.phaseDraft.description || '',
-    })
-    ctx.onDraftCommitted?.()
-    return phase.id
-  }
-  return undefined
-}
-
 export type NewResourceInput = {
   title: string
   type: string
@@ -61,11 +37,10 @@ export type NewResourceInput = {
 }
 
 export async function createResourceNode(ctx: ItemCreateContext, res: NewResourceInput): Promise<void> {
-  const prerequisiteNode = await resolvePrerequisiteNode(ctx)
   await createModuleNodeApi(ctx.orgId, ctx.effectiveCourseId, ctx.moduleId, {
     title: res.title,
     description: res.focusNotes ?? '',
-    prerequisite_node: prerequisiteNode,
+    chapter: ctx.chapterId ?? undefined,
     learning_material_content_type: resourceTypeToLabel(res.type),
     learning_material_content_url: res.url || undefined,
     focus_areas: res.focusNotes ?? undefined,
@@ -81,12 +56,11 @@ export type NewTaskInput = {
 }
 
 export async function createTaskNode(ctx: ItemCreateContext, t: NewTaskInput): Promise<void> {
-  const prerequisiteNode = await resolvePrerequisiteNode(ctx)
   const fmt = new Set<string>(t.formats)
   await createModuleNodeApi(ctx.orgId, ctx.effectiveCourseId, ctx.moduleId, {
     title: t.title,
     description: '',
-    prerequisite_node: prerequisiteNode,
+    chapter: ctx.chapterId ?? undefined,
     task_title: t.title,
     task_description: t.description,
     task_attachment: t.attachment ?? undefined,
@@ -108,11 +82,10 @@ export type NewQuizInput = {
 }
 
 export async function createQuizNode(ctx: ItemCreateContext, quiz: NewQuizInput): Promise<void> {
-  const prerequisiteNode = await resolvePrerequisiteNode(ctx)
   await createModuleNodeApi(ctx.orgId, ctx.effectiveCourseId, ctx.moduleId, {
     title: quiz.name,
     description: '',
-    prerequisite_node: prerequisiteNode,
+    chapter: ctx.chapterId ?? undefined,
     quiz_name: quiz.name,
     quiz_timer_minutes: quiz.timerMinutes,
     quiz_allow_multiple_correct: quiz.allowMultipleCorrect || undefined,

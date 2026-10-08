@@ -30,6 +30,7 @@ vi.mock('@/lib/api/organizations', () => ({
   getCoursesApi: vi.fn().mockResolvedValue([{ id: 'course-456', title: 'Test Course', status: 'published' }]),
   getCourseModulesApi: vi.fn().mockResolvedValue([]),
   getModuleNodesApi: vi.fn().mockResolvedValue([]),
+  getModuleChaptersApi: vi.fn().mockResolvedValue([]),
   getModuleNodeApi: vi.fn().mockResolvedValue({ id: 'n1', title: 'Normal Node', learning_material: {} }),
   updateCourseModuleApi: vi.fn(),
   updateModuleNodeApi: vi.fn(),
@@ -72,9 +73,10 @@ describe('CourseBuilder Coverage High-Yield Tests', () => {
     vi.mocked(orgApi.getCourseModulesApi).mockResolvedValue([
       { id: 'mod-1', title: 'Level 1', sequence_order: 1 }
     ] as unknown as ApiCourseModule[])
-    vi.mocked(orgApi.getModuleNodesApi).mockResolvedValue([
-      { id: 'node-1', title: 'Phase 1', prerequisite_node: null, sequence_order: 1 }
-    ] as unknown as ApiModuleNode[])
+    vi.mocked(orgApi.getModuleChaptersApi).mockResolvedValue([
+      { id: 1, title: 'Phase 1', sequence_order: 1 }
+    ])
+    vi.mocked(orgApi.getModuleNodesApi).mockResolvedValue([] as ApiModuleNode[])
   })
 
   afterEach(() => cleanup())

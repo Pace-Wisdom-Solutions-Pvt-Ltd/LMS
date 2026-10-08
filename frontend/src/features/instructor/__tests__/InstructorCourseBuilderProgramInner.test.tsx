@@ -772,7 +772,7 @@ describe('ProgramInner with apiCurriculum', () => {
   const apiCurriculum: ApiCurriculumContext = {
     orgId: 'org-1',
     moduleId: 'mod-1',
-    phaseNodeId: 10,
+    chapterId: 10,
     nodesInModule: 5,
     refresh: vi.fn().mockResolvedValue(undefined),
   }
@@ -892,7 +892,7 @@ describe('ProgramInner with apiCurriculum', () => {
     })
     expect(vi.mocked(createModuleNodeApi)).toHaveBeenCalledWith('org-1', 'course-1', 'mod-1', expect.objectContaining({
       title: 'API Res',
-      prerequisite_node: 10,
+      chapter: 10,
       learning_material_content_type: 'Link',
       learning_material_content_url: 'https://example.com',
     }))
@@ -916,7 +916,7 @@ describe('ProgramInner with apiCurriculum', () => {
     })
     expect(vi.mocked(createModuleNodeApi)).toHaveBeenCalledWith('org-1', 'course-1', 'mod-1', expect.objectContaining({
       task_title: 'API Task',
-      prerequisite_node: 10,
+      chapter: 10,
       task_allow_link: true,
     }))
   })
@@ -941,7 +941,7 @@ describe('ProgramInner with apiCurriculum', () => {
     })
     expect(vi.mocked(createModuleNodeApi)).toHaveBeenCalledWith('org-1', 'course-1', 'mod-1', expect.objectContaining({
       quiz_name: 'API Quiz',
-      prerequisite_node: 10,
+      chapter: 10,
     }))
   })
 

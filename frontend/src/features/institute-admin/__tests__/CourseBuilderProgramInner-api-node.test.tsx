@@ -45,11 +45,11 @@ describe('CourseBuilderProgramInner API node interactions', () => {
 
     render(
       <ProgramInner
-        programId="api-phase:mod-1:1"
+        programId="chapter:mod-1:1"
         apiCurriculum={{
           orgId: 'org-1',
           moduleId: 'mod-1',
-          phaseNodeId: 1,
+          chapterId: 1,
           nodesInModule: 2,
           refresh: refreshSpy,
         }}
@@ -57,7 +57,7 @@ describe('CourseBuilderProgramInner API node interactions', () => {
           {
             id: 22,
             title: 'Child',
-            prerequisite_node: 1,
+            chapter: 1,
             sequence_order: 2,
             content_url: '',
             content_type: '',

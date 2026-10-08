@@ -42,12 +42,12 @@ def _normalize_learning_material_url(url, has_file=False):
     return url
 from organizations.models import Batch
 from .models import (
-    Course, Module, Node, LearningMaterial,
+    Course, Module, Chapter, Node, LearningMaterial,
     StudentNodeProgress, Assessment,
     Task, Quiz, QuizQuestion, QuizOption,
     TaskSubmission, QuizSubmission, QuizAnswer,
 )
-from curriculum.utils import normalize_correct_labels
+from curriculum.utils import normalize_correct_labels, next_sequence_order
 
 class NormalizeURLField(serializers.URLField):
     def to_internal_value(self, data):
@@ -264,6 +264,23 @@ class ModuleSerializer(serializers.ModelSerializer):
         model = Module
         fields = ['id', 'course', 'title', 'description', 'sequence_order', 'created_at', 'updated_at']
         read_only_fields = ['course']
+
+
+class ChapterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chapter
+        fields = ['id', 'module', 'title', 'description', 'sequence_order', 'created_at', 'updated_at']
+        read_only_fields = ['module']
+        extra_kwargs = {'sequence_order': {'required': False}}
+
+    def create(self, validated_data):
+        # New chapters go to the end of the module unless an order is given.
+        if not validated_data.get('sequence_order'):
+            validated_data['sequence_order'] = next_sequence_order(
+                Chapter.objects.filter(module=validated_data['module'])
+            )
+        return super().create(validated_data)
+
 
 class LearningMaterialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -759,9 +776,20 @@ class NodeSerializer(serializers.ModelSerializer):
             )
         except DjangoValidationError:
             raise serializers.ValidationError({'learning_material_content_url': INVALID_URL_ERROR})
+
+        chapter = data.get('chapter')
+        module = self.instance.module if self.instance else self.context.get('module')
+        if chapter is not None and module is not None and chapter.module_id != module.id:
+            raise serializers.ValidationError({'chapter': 'Chapter does not belong to this module.'})
         return data
 
     def create(self, validated_data):
+        # Append to the end of the module (and so of its chapter) unless an order is given.
+        if 'sequence_order' not in validated_data:
+            validated_data['sequence_order'] = next_sequence_order(
+                Node.objects.filter(module=validated_data['module'])
+            )
+
         lm_type = validated_data.pop('learning_material_content_type', None)
         lm_url = validated_data.pop('learning_material_content_url', None)
 
@@ -847,6 +875,13 @@ class NodeSerializer(serializers.ModelSerializer):
         task_data, task_title = self._pop_task_data(validated_data)
         quiz_payload = self._prepare_quiz_payload(validated_data)
 
+        # A node moved to another chapter lands at the end of it.
+        moved = 'chapter' in validated_data and validated_data['chapter'] != instance.chapter
+        if moved and 'sequence_order' not in validated_data:
+            validated_data['sequence_order'] = next_sequence_order(
+                Node.objects.filter(module=instance.module)
+            )
+
         # 2. Update node fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -862,7 +897,7 @@ class NodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Node
         fields = [
-            'id', 'module', 'title', 'description', 'sequence_order', 'prerequisite_node', 
+            'id', 'module', 'chapter', 'title', 'description', 'sequence_order', 'prerequisite_node',
             'focus_areas', 'quick_outline',
             # write-only inputs
             'learning_material_content_type', 'learning_material_content_url',
@@ -1024,12 +1059,13 @@ class RoadmapNodeSerializer(serializers.ModelSerializer):
     has_assessment = serializers.SerializerMethodField()
     # For students: indicates if this node's content can be viewed right now
     is_accessible = serializers.SerializerMethodField()
+    chapter_title = serializers.CharField(source='chapter.title', read_only=True, default=None)
 
     class Meta:
         model = Node
         fields = [
-            'id', 'module', 'title', 'description', 'sequence_order', 'prerequisite_node',
-            'focus_areas', 'quick_outline', 'type',
+            'id', 'module', 'chapter', 'chapter_title', 'title', 'description', 'sequence_order',
+            'prerequisite_node', 'focus_areas', 'quick_outline', 'type',
             'has_learning_material', 'has_task', 'has_quiz', 'has_assessment',
             'quizzes', 'progress', 'is_completed', 'is_accessible',
         ]
@@ -1125,13 +1161,20 @@ class RoadmapNodeSerializer(serializers.ModelSerializer):
         return _student_can_access_node(user, obj, request=request)
 
 
+class RoadmapChapterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chapter
+        fields = ['id', 'title', 'description', 'sequence_order']
+
+
 class RoadmapModuleSerializer(serializers.ModelSerializer):
     nodes = serializers.SerializerMethodField()
+    chapters = RoadmapChapterSerializer(many=True, read_only=True)
     is_accessible = serializers.SerializerMethodField()
 
     class Meta:
         model = Module
-        fields = ['id', 'title', 'description', 'sequence_order', 'nodes', 'is_accessible']
+        fields = ['id', 'title', 'description', 'sequence_order', 'chapters', 'nodes', 'is_accessible']
 
     def get_nodes(self, obj):
         filtered_nodes = []

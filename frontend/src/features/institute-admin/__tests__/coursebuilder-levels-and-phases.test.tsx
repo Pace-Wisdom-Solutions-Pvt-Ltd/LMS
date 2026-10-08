@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -32,6 +32,9 @@ const mockCreateCourseModuleApi = vi.fn()
 const mockDeleteCourseModuleApi = vi.fn()
 const mockGetModuleNodesApi = vi.fn()
 const mockGetModuleNodeApi = vi.fn()
+const mockGetModuleChaptersApi = vi.fn()
+const mockCreateChapterApi = vi.fn()
+const mockDeleteChapterApi = vi.fn()
 
 vi.mock('@/lib/api/organizations', () => ({
   getCourseModulesApi: (...args: unknown[]) => mockGetCourseModulesApi(...args),
@@ -39,6 +42,10 @@ vi.mock('@/lib/api/organizations', () => ({
   deleteCourseModuleApi: (...args: unknown[]) => mockDeleteCourseModuleApi(...args),
   getModuleNodesApi: (...args: unknown[]) => mockGetModuleNodesApi(...args),
   getModuleNodeApi: (...args: unknown[]) => mockGetModuleNodeApi(...args),
+  getModuleChaptersApi: (...args: unknown[]) => mockGetModuleChaptersApi(...args),
+  createChapterApi: (...args: unknown[]) => mockCreateChapterApi(...args),
+  deleteChapterApi: (...args: unknown[]) => mockDeleteChapterApi(...args),
+  updateChapterApi: vi.fn(),
 
   // unused in these tests (but referenced by file)
   getCoursesApi: vi.fn().mockResolvedValue([]),
@@ -92,9 +99,16 @@ afterEach(() => {
   mockDeleteCourseModuleApi.mockReset()
   mockGetModuleNodesApi.mockReset()
   mockGetModuleNodeApi.mockReset()
+  mockGetModuleChaptersApi.mockReset()
+  mockCreateChapterApi.mockReset()
+  mockDeleteChapterApi.mockReset()
 })
 
-describe('CourseBuilder - levels + phase drafts', () => {
+describe('CourseBuilder - levels + chapters', () => {
+  beforeEach(() => {
+    mockGetModuleChaptersApi.mockResolvedValue([])
+  })
+
   it('creates unique levels via API (skips duplicates)', async () => {
     mockUseParams.mockReturnValue({ courseId: '10' })
 
@@ -214,7 +228,7 @@ describe('CourseBuilder - levels + phase drafts', () => {
     expect(showToast).not.toHaveBeenCalledWith('Level deleted.', 'success')
   })
 
-  it('adds and deletes a phase draft under a level', async () => {
+  it('saves a chapter under a level right away and deletes it', async () => {
     mockUseParams.mockReturnValue({ courseId: '10' })
 
     mockGetCourseModulesApi.mockResolvedValue([
@@ -222,6 +236,8 @@ describe('CourseBuilder - levels + phase drafts', () => {
     ])
     mockGetModuleNodesApi.mockResolvedValue([])
     mockGetModuleNodeApi.mockResolvedValue(null)
+    mockCreateChapterApi.mockResolvedValueOnce({ id: 5, title: 'Phase 1' })
+    mockDeleteChapterApi.mockResolvedValueOnce(undefined)
 
     const { default: CourseBuilder } = await import('../course-builder/CourseBuilder')
     render(
@@ -234,22 +250,50 @@ describe('CourseBuilder - levels + phase drafts', () => {
     await waitFor(() => expect(screen.getAllByText('Beginner').length).toBeGreaterThan(0))
     fireEvent.click(screen.getByRole('button', { name: /Add Chapter/i }))
 
-    // modal uses createPortal; find its form fields
+    // The chapter is POSTed on Add; the refetch then returns it from the server.
+    mockGetModuleChaptersApi.mockResolvedValue([{ id: 5, title: 'Phase 1', sequence_order: 1 }])
     const dialog = await screen.findByRole('dialog')
     const [titleInput] = within(dialog).getAllByRole('textbox')
     fireEvent.change(titleInput, { target: { value: 'Phase 1' } })
     fireEvent.click(within(dialog).getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    expect(showToast).toHaveBeenCalledWith('Phase added.', 'success')
+    expect(mockCreateChapterApi).toHaveBeenCalledWith('1', '10', '1', { title: 'Phase 1', description: '' })
+    expect(showToast).toHaveBeenCalledWith('Chapter added.', 'success')
+    expect(await screen.findByText('Phase 1')).toBeTruthy()
 
-    // delete draft phase
     const delBtns = screen.getAllByRole('button', { name: 'Delete phase' })
     fireEvent.click(delBtns.at(-1) as HTMLElement)
     const confirm = await screen.findByRole('heading', { name: /Confirm action/i })
     fireEvent.click(within(confirm.parentElement as HTMLElement).getByRole('button', { name: 'OK' }))
 
-    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Phase deleted.', 'success'))
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Chapter deleted.', 'success'))
+    expect(mockDeleteChapterApi).toHaveBeenCalledWith('1', '10', '1', 5)
+  })
+
+  it('keeps the Add Chapter modal open when saving fails', async () => {
+    mockUseParams.mockReturnValue({ courseId: '10' })
+    mockGetCourseModulesApi.mockResolvedValue([
+      { id: 1, title: 'Beginner', sequence_order: 1, description: '' },
+    ])
+    mockGetModuleNodesApi.mockResolvedValue([])
+    mockCreateChapterApi.mockRejectedValueOnce(new Error('server down'))
+
+    const { default: CourseBuilder } = await import('../course-builder/CourseBuilder')
+    render(
+      <MemoryRouter>
+        <CourseBuilder />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getAllByText('Beginner').length).toBeGreaterThan(0))
+    fireEvent.click(screen.getByRole('button', { name: /Add Chapter/i }))
+    const dialog = await screen.findByRole('dialog')
+    const [titleInput] = within(dialog).getAllByRole('textbox')
+    fireEvent.change(titleInput, { target: { value: 'Phase 1' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Add$/i }))
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('server down', 'error'))
+    expect(screen.getByRole('dialog')).toBeTruthy()
   })
 })
-

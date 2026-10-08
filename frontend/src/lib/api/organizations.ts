@@ -138,6 +138,25 @@ export interface UpdateCourseModulePayload {
   sequence_order?: number;
 }
 
+/* ── Chapter Types ── */
+
+/** A card inside a module (level) that groups curriculum items. */
+export interface ApiChapter {
+  id: number;
+  module?: number;
+  title: string;
+  description?: string | null;
+  sequence_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ChapterPayload {
+  title?: string;
+  description?: string;
+  sequence_order?: number;
+}
+
 /* ── Module Node (Phase) Types ── */
 
 export interface ApiModuleNode {
@@ -145,6 +164,8 @@ export interface ApiModuleNode {
   title: string;
   description?: string | null;
   sequence_order?: number;
+  /** Chapter (card) this item belongs to; null for items outside any chapter. */
+  chapter?: number | null;
   prerequisite_node?: number | null;
   // Learning material (API may return either `content_*` or `learning_material_*`)
   content_type?: string | null;
@@ -185,6 +206,7 @@ export interface CreateModuleNodePayload {
   title: string;
   description?: string;
   sequence_order?: number;
+  chapter?: number;
   prerequisite_node?: number;
   drip_delay_days?: number;
   focus_areas?: string;
@@ -389,6 +411,9 @@ export interface ApiRoadmapNode {
   id: number;
   title: string;
   description?: string | null;
+  /** Chapter this node belongs to; null for nodes outside any chapter. */
+  chapter?: number | null;
+  chapter_title?: string | null;
   content_type?: string | null;
   content_url?: string | null;
   node_type?: string | null;
@@ -415,12 +440,21 @@ export interface ApiRoadmapNode {
   is_accessible?: boolean;
 }
 
+export interface ApiRoadmapChapter {
+  id: number;
+  title: string;
+  description?: string | null;
+  sequence_order?: number;
+}
+
 export interface ApiRoadmapModule {
   id: number;
   title: string;
   description?: string | null;
   /** Whether the student may open this module (prerequisites satisfied). */
   is_accessible?: boolean;
+  /** Chapters (cards) in display order; each node points at one via `chapter`. */
+  chapters?: ApiRoadmapChapter[];
   nodes: ApiRoadmapNode[];
 }
 
@@ -1109,6 +1143,7 @@ function buildCreateNodeFormData(payload: CreateModuleNodePayload): FormData {
   fd.append("title", payload.title);
   fd.append("description", payload.description ?? "");
   appendNodeField(fd, "sequence_order", payload.sequence_order);
+  appendNodeField(fd, "chapter", payload.chapter);
   const prn = payload.prerequisite_node;
   if (prn != null && Number(prn) > 0)
     fd.append("prerequisite_node", String(Number(prn)));
@@ -1208,6 +1243,8 @@ function buildUpdateNodeFormData(
   }
   if (payload.sequence_order !== undefined)
     fd.append("sequence_order", String(payload.sequence_order));
+  if (payload.chapter !== undefined)
+    fd.append("chapter", String(payload.chapter));
   if (payload.drip_delay_days !== undefined)
     fd.append("drip_delay_days", String(payload.drip_delay_days));
   appendDefinedField(fd, "focus_areas", payload.focus_areas);
@@ -1305,6 +1342,85 @@ export async function deleteModuleNodeApi(
 ): Promise<void> {
   await apiDelete(
     ep.courses.modules.nodes.detail(orgId, courseId, moduleId, nodeId),
+  );
+}
+
+export async function getModuleChaptersApi(
+  orgId: string,
+  courseId: string | number,
+  moduleId: string | number,
+): Promise<ApiChapter[]> {
+  return unwrap(
+    await apiGet<Paginated<ApiChapter> | ApiChapter[]>(
+      ep.courses.modules.chapters.list(orgId, courseId, moduleId),
+    ),
+  );
+}
+
+export async function createChapterApi(
+  orgId: string,
+  courseId: string | number,
+  moduleId: string | number,
+  payload: ChapterPayload & { title: string },
+): Promise<ApiChapter> {
+  return apiPost<ApiChapter>(
+    ep.courses.modules.chapters.list(orgId, courseId, moduleId),
+    payload,
+  );
+}
+
+export async function updateChapterApi(
+  orgId: string,
+  courseId: string | number,
+  moduleId: string | number,
+  chapterId: string | number,
+  payload: ChapterPayload,
+): Promise<ApiChapter> {
+  return apiPatch<ApiChapter>(
+    ep.courses.modules.chapters.detail(orgId, courseId, moduleId, chapterId),
+    payload,
+  );
+}
+
+/** Deletes the chapter and every item in it. */
+export async function deleteChapterApi(
+  orgId: string,
+  courseId: string | number,
+  moduleId: string | number,
+  chapterId: string | number,
+): Promise<void> {
+  await apiDelete(
+    ep.courses.modules.chapters.detail(orgId, courseId, moduleId, chapterId),
+  );
+}
+
+/** Sets the order of the items in a chapter; `nodeIds` must list all of them. */
+export async function reorderChapterNodesApi(
+  orgId: string,
+  courseId: string | number,
+  moduleId: string | number,
+  chapterId: string | number,
+  nodeIds: number[],
+): Promise<ApiModuleNode[]> {
+  return apiPost<ApiModuleNode[]>(
+    ep.courses.modules.chapters.reorder(orgId, courseId, moduleId, chapterId),
+    { node_ids: nodeIds },
+  );
+}
+
+/**
+ * Reorders nodes of a module in one atomic request. The listed nodes swap
+ * among the positions they already hold, so a subset is fine.
+ */
+export async function reorderModuleNodesApi(
+  orgId: string,
+  courseId: string | number,
+  moduleId: string | number,
+  nodeIds: number[],
+): Promise<ApiModuleNode[]> {
+  return apiPost<ApiModuleNode[]>(
+    ep.courses.modules.nodes.reorder(orgId, courseId, moduleId),
+    { node_ids: nodeIds },
   );
 }
 

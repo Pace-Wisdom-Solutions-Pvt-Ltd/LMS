@@ -48,6 +48,7 @@ vi.mock('@/lib/api/organizations', () => ({
   getCoursesApi: (...args: unknown[]) => mockGetCoursesApi(...args),
   getCourseModulesApi: (...args: unknown[]) => mockGetCourseModulesApi(...args),
   getModuleNodesApi: (...args: unknown[]) => mockGetModuleNodesApi(...args),
+  getModuleChaptersApi: vi.fn().mockResolvedValue([]),
   getModuleNodeApi: (...args: unknown[]) => mockGetModuleNodeApi(...args),
   // other APIs referenced but not used in these tests
   createCourseModuleApi: vi.fn(),

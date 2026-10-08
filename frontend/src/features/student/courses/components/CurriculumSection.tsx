@@ -15,6 +15,8 @@ export default function CurriculumSection({
   localDone,
   onNodeDone,
   onUpdated,
+  precedingNode,
+  emptyText = "No items configured in this level yet.",
 }: {
   readonly nodes: RoadmapNodeData[];
   readonly orgId: string;
@@ -23,6 +25,12 @@ export default function CurriculumSection({
   readonly localDone: Record<number, boolean>;
   readonly onNodeDone: (nid: number) => void;
   readonly onUpdated: () => void;
+  /**
+   * Last item of the previous chapter in the same level. Unlocking runs across
+   * the whole level, so the first item here waits for it to be completed.
+   */
+  readonly precedingNode?: RoadmapNodeData | null;
+  readonly emptyText?: string;
 }) {
   const [activeNode, setActiveNode] = useState<number | null>(null);
 
@@ -39,7 +47,7 @@ export default function CurriculumSection({
   if (!nodes || nodes.length === 0) {
     return (
       <div className="p-10 text-center text-slate-300 italic font-medium text-sm">
-        No items configured in this level yet.
+        {emptyText}
       </div>
     );
   }
@@ -63,7 +71,7 @@ export default function CurriculumSection({
         } else {
           // The immediate predecessor gates this node — unless it's a heading,
           // in which case this is a section entry and always opens.
-          const prev = idx > 0 ? nodes[idx - 1] : null;
+          const prev = idx > 0 ? nodes[idx - 1] : (precedingNode ?? null);
           const prevMeta = prev ? getMeta(prev) : null;
           const isPrevDone =
             prev && prevMeta && !prevMeta.isHeading

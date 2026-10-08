@@ -532,7 +532,23 @@ def test_userserializer_get_roles_list():
     ser = UserSerializer(u)
     assert "roles" in ser.data
     assert r.name in ser.data["roles"]
-    
+
+
+@pytest.mark.django_db
+def test_userserializer_includes_extra_membership_roles():
+    # An org_admin who is also a teacher and student must expose all three so the
+    # login screen offers the "Continue as" role picker.
+    u = User.objects.create_user(email="multi@lms.com", password=DEFAULT_VAL)
+    org = Organization.objects.create(name="OrgM", contact_email="o@m.com")
+    roles = [Role.objects.get_or_create(name=n)[0] for n in ("org_admin", "teacher", "student")]
+    member = OrganizationMember.objects.create(organization=org, user=u, role=roles[0])
+    member.roles.add(*roles)
+
+    data = UserSerializer(u).data
+    assert sorted(data["roles"]) == ["org_admin", "student", "teacher"]
+    assert data["organizations"][0]["roles"] == ["org_admin", "student", "teacher"]
+
+
 @pytest.mark.django_db
 def test_accept_invite_bad_signature():
     client = APIClient()

@@ -72,6 +72,10 @@ vi.mock('@/lib/api/organizations', async () => {
     createModuleNodeApi: vi.fn().mockResolvedValue({ id: 888, title: 'New node', sequence_order: 1, prerequisite_node: null }),
     updateModuleNodeApi: vi.fn().mockResolvedValue({ id: 201, title: 'Intro phase', sequence_order: 1 }),
     deleteModuleNodeApi: vi.fn().mockResolvedValue(undefined),
+    getModuleChaptersApi: vi.fn().mockResolvedValue([]),
+    createChapterApi: vi.fn().mockResolvedValue({ id: 501, title: 'New chapter' }),
+    updateChapterApi: vi.fn().mockResolvedValue({ id: 501, title: 'Intro phase' }),
+    deleteChapterApi: vi.fn().mockResolvedValue(undefined),
     getModuleNodeApi: vi.fn().mockResolvedValue({
       id: 201,
       title: 'Intro phase',
@@ -86,6 +90,8 @@ vi.mock('@/lib/api/organizations', async () => {
 import {
   getCourseModulesApi,
   getModuleNodesApi,
+  getModuleChaptersApi,
+  deleteChapterApi,
   deleteModuleNodeApi,
   createModuleNodeApi,
 } from '@/lib/api/organizations'
@@ -162,26 +168,28 @@ describe('CourseBuilder — real institute-admin store + API fixtures', () => {
   )
 
   it('cancelling delete phase confirm does not call delete API', async () => {
-    // A chapter heading (no content) with one content child: only headings get Edit/Delete phase actions.
+    // A chapter with one item: only chapters get Edit/Delete phase actions.
+    vi.mocked(getModuleChaptersApi).mockResolvedValue([
+      { id: 501, title: 'Intro phase', description: 'Intro copy', sequence_order: 1 },
+    ])
     vi.mocked(getModuleNodesApi).mockResolvedValue([
-      { id: 201, title: 'Intro phase', description: 'Intro copy', sequence_order: 1, prerequisite_node: null },
       {
         id: 202,
         title: 'Intro video',
-        sequence_order: 2,
-        prerequisite_node: 201,
+        sequence_order: 1,
+        chapter: 501,
         content_type: 'youtube',
         content_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       },
     ])
     renderWithRealStore()
     await waitFor(() => expect(screen.getAllByLabelText('Delete phase').length).toBeGreaterThan(0), { timeout: 10000 })
-    vi.mocked(deleteModuleNodeApi).mockClear()
+    vi.mocked(deleteChapterApi).mockClear()
     fireEvent.click(screen.getAllByLabelText('Delete phase')[0])
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Confirm action' })).toBeTruthy())
     const cancels = screen.getAllByRole('button', { name: 'Cancel' })
     fireEvent.click(cancels[cancels.length - 1])
-    await waitFor(() => expect(vi.mocked(deleteModuleNodeApi)).not.toHaveBeenCalled())
+    await waitFor(() => expect(vi.mocked(deleteChapterApi)).not.toHaveBeenCalled())
   })
 
   it(

@@ -63,18 +63,13 @@ export type QuizBuilderPageProps = {
       /**
        * When the quiz lives under a real API course/module, bulk upload creates
        * the quiz node on the server first, then attaches the uploaded questions.
-       * `phaseNodeId` is the chapter (phase) node the quiz belongs under — passed
-       * as the new node's `prerequisite_node` so it nests inside the chapter
-       * instead of landing at the module root. Null/undefined ⇒ module root.
+       * `chapterId` is the chapter the quiz belongs to. Null/undefined ⇒ no chapter.
        */
       apiIds?: {
         orgId: string
         effectiveCourseId: string | number
         moduleId: string
-        phaseNodeId?: number | null
-        /** Unsaved chapter — created on the first quiz POST so the quiz nests inside it. */
-        phaseDraft?: { title: string; description: string }
-        onDraftCommitted?: () => void
+        chapterId?: number | null
       }
     }
   | {
@@ -231,9 +226,7 @@ export default function QuizBuilderPage(props: QuizBuilderPageProps) {
       orgId: apiIds.orgId,
       effectiveCourseId: apiIds.effectiveCourseId,
       moduleId: apiIds.moduleId,
-      phaseNodeId: apiIds.phaseNodeId ?? null,
-      phaseDraft: apiIds.phaseDraft,
-      onDraftCommitted: apiIds.onDraftCommitted,
+      chapterId: apiIds.chapterId ?? null,
     }
     await createQuizNode(ctx, {
       name: quizName.trim(),

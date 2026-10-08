@@ -53,14 +53,16 @@ class UserSerializer(serializers.ModelSerializer):
                 if user_role.role:
                     roles.add(user_role.role.name)
         if hasattr(obj, 'organization_memberships'):
-            memberships = obj.organization_memberships.select_related("role", "organization").filter(
+            memberships = obj.organization_memberships.select_related("role", "organization").prefetch_related("roles").filter(
                 is_active=True,
                 organization__is_active=True,
             )
             for org_member in memberships:
                 if org_member.role:
                     roles.add(org_member.role.name)
-                
+                # A member can hold extra roles (e.g. an org_admin who is also a student).
+                roles.update(r.name for r in org_member.roles.all())
+
         return list(roles)
 
     def _build_org_map(self, memberships):
@@ -114,7 +116,8 @@ class UserSerializer(serializers.ModelSerializer):
             {
                 "org_id": org["org_id"],
                 "name": org["name"],
-                "role": min(org["roles"]) if org["roles"] else None
+                "role": min(org["roles"]) if org["roles"] else None,
+                "roles": sorted(org["roles"]),
             }
             for org in org_map.values()
         ]

@@ -12,11 +12,15 @@ import { Layers, X, Pencil, Trash2 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 import { getStoredOrganizations } from "@/lib/auth";
 import {
-  deleteModuleNodeApi,
+  createChapterApi,
+  deleteChapterApi,
   getCourseByIdApi,
   getCourseModulesApi,
+  getModuleChaptersApi,
   getModuleNodesApi,
+  updateChapterApi,
   updateModuleNodeApi,
+  type ApiChapter,
   type ApiCourse,
   type ApiCourseModule,
   type ApiModuleNode,
@@ -25,16 +29,9 @@ import {
   ProgramInner,
   type NodeEditModalState,
 } from "./InstructorCourseBuilderProgramInner";
-import {
-  buildQuestionsInputJson,
-  nodeHasContent,
-  collectDescendantNodes,
-} from "@/features/institute-admin/course-builder/courseBuilderHelpers";
-
-function isRootModuleNode(n: ApiModuleNode): boolean {
-  const pr = n.prerequisite_node;
-  return pr == null || pr === undefined || Number(pr) <= 0;
-}
+import { buildQuestionsInputJson } from "@/features/institute-admin/course-builder/courseBuilderHelpers";
+import { TASK_FORMAT_FIELDS } from "@/features/institute-admin/course-builder/courseBuilderProgramHelpers";
+import type { SubmissionFormat } from "@/features/institute-admin/store";
 
 export default function CourseDetail() {
   const navigate = useNavigate();
@@ -51,18 +48,14 @@ export default function CourseDetail() {
   const [apiNodesByModule, setApiNodesByModule] = useState<
     Record<string, ApiModuleNode[]>
   >({});
-  const [phaseDraftsByModule, setPhaseDraftsByModule] = useState<
-    Record<
-      string,
-      Array<{ clientId: string; title: string; description: string }>
-    >
+  const [apiChaptersByModule, setApiChaptersByModule] = useState<
+    Record<string, ApiChapter[]>
   >({});
 
   const [programModalState, setProgramModalState] = useState<{
     moduleId: string;
-    apiNodeId?: string;
-    localDraftClientId?: string;
   } | null>(null);
+  const [programSaving, setProgramSaving] = useState(false);
 
   const [programForm, setProgramForm] = useState({
     title: "",
@@ -77,7 +70,7 @@ export default function CourseDetail() {
   // Phase edit modal state
   const [phaseEditModal, setPhaseEditModal] = useState<{
     moduleId: string;
-    nodeId: number;
+    chapterId: number;
     title: string;
     description: string;
   } | null>(null);
@@ -129,7 +122,7 @@ export default function CourseDetail() {
       })
       .finally(() => setLoading(false));
 
-    fetchModules();
+    void fetchModules();
   }, [orgId, courseId]);
 
   const fetchModules = async () => {
@@ -144,14 +137,16 @@ export default function CourseDetail() {
     }
   };
 
+  /** Loads a module's chapters and items (nodes) together, since items render inside chapters. */
   const fetchNodes = async (moduleId: string | number) => {
     if (!orgId || !courseId || !moduleId) return;
-    try {
-      const nodes = await getModuleNodesApi(orgId, courseId, moduleId);
-      setApiNodesByModule((p) => ({ ...p, [String(moduleId)]: nodes }));
-    } catch {
-      setApiNodesByModule((p) => ({ ...p, [String(moduleId)]: [] }));
-    }
+    const key = String(moduleId);
+    const [nodes, chapters] = await Promise.all([
+      getModuleNodesApi(orgId, courseId, moduleId).catch(() => [] as ApiModuleNode[]),
+      getModuleChaptersApi(orgId, courseId, moduleId).catch(() => [] as ApiChapter[]),
+    ]);
+    setApiNodesByModule((p) => ({ ...p, [key]: nodes }));
+    setApiChaptersByModule((p) => ({ ...p, [key]: chapters }));
   };
 
   const openAddPhase = (moduleId: string) => {
@@ -159,25 +154,32 @@ export default function CourseDetail() {
     setProgramModalState({ moduleId });
   };
 
-  const handleSaveProgramDraft = (e: React.SyntheticEvent) => {
+  const handleSaveProgram = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!programModalState) return;
+    if (!programModalState || !orgId || !courseId) return;
     const title = programForm.title.trim();
     if (!title) {
       showToast("Phase title is required.", "warning");
       return;
     }
     const mid = programModalState.moduleId;
-    const clientId = crypto.randomUUID();
-    setPhaseDraftsByModule((prev) => ({
-      ...prev,
-      [mid]: [
-        ...(prev[mid] ?? []),
-        { clientId, title, description: programForm.description.trim() },
-      ],
-    }));
-    setProgramModalState(null);
-    showToast("Phase draft added.", "success");
+    setProgramSaving(true);
+    try {
+      await createChapterApi(orgId, courseId, mid, {
+        title,
+        description: programForm.description.trim(),
+      });
+      await fetchNodes(mid);
+      setProgramModalState(null);
+      showToast("Phase added.", "success");
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Failed to add phase.",
+        "error",
+      );
+    } finally {
+      setProgramSaving(false);
+    }
   };
 
   const handlePhaseEditSave = async () => {
@@ -189,11 +191,11 @@ export default function CourseDetail() {
     }
     setPhaseEditSaving(true);
     try {
-      await updateModuleNodeApi(
+      await updateChapterApi(
         orgId,
         courseId,
         phaseEditModal.moduleId,
-        phaseEditModal.nodeId,
+        phaseEditModal.chapterId,
         {
           title,
           description: phaseEditModal.description.trim() || "",
@@ -212,11 +214,11 @@ export default function CourseDetail() {
     }
   };
 
-  const handlePhaseDelete = async (moduleId: string, nodeId: number) => {
+  const handlePhaseDelete = async (moduleId: string, chapterId: number) => {
     if (!(await requestConfirm("Delete this phase and all its items?"))) return;
     if (!orgId || !courseId) return;
     try {
-      await deleteModuleNodeApi(orgId, courseId, moduleId, nodeId);
+      await deleteChapterApi(orgId, courseId, moduleId, chapterId);
       await fetchNodes(moduleId);
       showToast("Phase deleted.", "success");
     } catch (err) {
@@ -319,10 +321,26 @@ export default function CourseDetail() {
           </PageCard>
         ) : (
           apiModules.map((m, idx) => {
-            const drafts = phaseDraftsByModule[String(m.id)] ?? [];
-            const nodes = (apiNodesByModule[String(m.id)] ?? []).filter(
-              isRootModuleNode,
-            );
+            const moduleNodes = apiNodesByModule[String(m.id)] ?? [];
+            const chapters = apiChaptersByModule[String(m.id)] ?? [];
+            // Items saved before chapters existed, or whose chapter was removed.
+            const unchaptered = moduleNodes.filter((n) => n.chapter == null);
+            const programInnerProps = (chapterId: number | null) => ({
+              orgId,
+              effectiveCourseId: courseId,
+              apiCurriculum: {
+                orgId: orgId,
+                moduleId: String(m.id),
+                chapterId,
+                nodesInModule: moduleNodes.length,
+                refresh: () => fetchNodes(m.id),
+              },
+              refresh: () => fetchNodes(m.id),
+              requestConfirm,
+              nodeEditLoading,
+              setNodeEditLoading,
+              setNodeEditModal,
+            });
 
             return (
               <div
@@ -339,7 +357,7 @@ export default function CourseDetail() {
                         {m.title}
                       </h3>
                       <p className="text-xs text-slate-500">
-                        {nodes.length} Phases • {drafts.length} Drafts
+                        {chapters.length} Phases
                       </p>
                     </div>
                   </div>
@@ -348,126 +366,70 @@ export default function CourseDetail() {
                 <div className="p-6 space-y-6">
                   {/* Phase List */}
                   <div className="space-y-3">
-                    {nodes.map((node) => {
-                      // A root node carrying its own content is a regular item, not
-                      // an empty chapter heading. Render it (and its full chain) as a
-                      // flat list with no chapter header so nothing is hidden.
-                      const moduleNodes = apiNodesByModule[String(m.id)] ?? [];
-                      const isContentRoot = nodeHasContent(node);
-                      const descendants = collectDescendantNodes(
-                        node.id,
-                        moduleNodes,
-                      );
-                      const childNodes = isContentRoot
-                        ? [node, ...descendants]
-                        : descendants;
-                      return (
-                        <div
-                          key={node.id}
-                          className="rounded-xl border border-slate-200 bg-white overflow-hidden"
-                        >
-                          {!isContentRoot && (
-                            <div className="flex items-start justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-100">
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-800 leading-tight">
-                                  {node.title}
-                                </p>
-                                {node.description && (
-                                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                                    {node.description}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setPhaseEditModal({
-                                      moduleId: String(m.id),
-                                      nodeId: node.id,
-                                      title: node.title,
-                                      description: node.description ?? "",
-                                    })
-                                  }
-                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-brand-teal hover:border-brand-teal/40 transition-colors"
-                                  title="Edit phase"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handlePhaseDelete(String(m.id), node.id)
-                                  }
-                                  className="p-1.5 rounded-lg border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                  title="Delete phase"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          <div className="p-3">
-                            <ProgramInner
-                              programId={String(node.id)}
-                              orgId={orgId}
-                              effectiveCourseId={courseId}
-                              apiCurriculum={{
-                                orgId: orgId,
-                                moduleId: String(m.id),
-                                phaseNodeId: node.id,
-                                nodesInModule: nodes.length,
-                                refresh: () => fetchNodes(m.id),
-                              }}
-                              apiChildNodes={childNodes}
-                              refresh={() => fetchNodes(m.id)}
-                              requestConfirm={requestConfirm}
-                              nodeEditLoading={nodeEditLoading}
-                              setNodeEditLoading={setNodeEditLoading}
-                              setNodeEditModal={setNodeEditModal}
-                            />
+                    {unchaptered.length > 0 && (
+                      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden p-3">
+                        <ProgramInner
+                          programId={`unchaptered:${m.id}`}
+                          apiChildNodes={unchaptered}
+                          {...programInnerProps(null)}
+                        />
+                      </div>
+                    )}
+
+                    {chapters.map((chapter) => (
+                      <div
+                        key={chapter.id}
+                        className="rounded-xl border border-slate-200 bg-white overflow-hidden"
+                      >
+                        <div className="flex items-start justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-100">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800 leading-tight">
+                              {chapter.title}
+                            </p>
+                            {chapter.description && (
+                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                                {chapter.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPhaseEditModal({
+                                  moduleId: String(m.id),
+                                  chapterId: chapter.id,
+                                  title: chapter.title,
+                                  description: chapter.description ?? "",
+                                })
+                              }
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-brand-teal hover:border-brand-teal/40 transition-colors"
+                              title="Edit phase"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handlePhaseDelete(String(m.id), chapter.id)
+                              }
+                              className="p-1.5 rounded-lg border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Delete phase"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
-                      );
-                    })}
-
-                    {/* Drafts */}
-                    {drafts.map((d) => (
-                      <ProgramInner
-                        key={d.clientId}
-                        programId={d.clientId}
-                        orgId={orgId}
-                        effectiveCourseId={courseId}
-                        phaseTitle={d.title}
-                        phaseDescription={d.description || undefined}
-                        apiCurriculum={{
-                          orgId: orgId,
-                          moduleId: String(m.id),
-                          phaseNodeId: null,
-                          phaseDraft: {
-                            title: d.title,
-                            description: d.description,
-                          },
-                          localDraftClientId: d.clientId,
-                          // First item POSTed under this draft creates the chapter
-                          // node, then drops the local draft so the saved chapter
-                          // (with its item) shows after the refetch.
-                          onDraftCommitted: () =>
-                            setPhaseDraftsByModule((p) => ({
-                              ...p,
-                              [String(m.id)]: (p[String(m.id)] ?? []).filter(
-                                (x) => x.clientId !== d.clientId,
-                              ),
-                            })),
-                          nodesInModule: nodes.length,
-                          refresh: () => fetchNodes(m.id),
-                        }}
-                        refresh={() => fetchNodes(m.id)}
-                        requestConfirm={requestConfirm}
-                        nodeEditLoading={nodeEditLoading}
-                        setNodeEditLoading={setNodeEditLoading}
-                        setNodeEditModal={setNodeEditModal}
-                      />
+                        <div className="p-3">
+                          <ProgramInner
+                            programId={`chapter:${m.id}:${chapter.id}`}
+                            apiChildNodes={moduleNodes.filter(
+                              (n) => n.chapter === chapter.id,
+                            )}
+                            {...programInnerProps(chapter.id)}
+                          />
+                        </div>
+                      </div>
                     ))}
                   </div>
 
@@ -492,7 +454,7 @@ export default function CourseDetail() {
         open={programModalState != null}
         onClose={() => setProgramModalState(null)}
       >
-        <form onSubmit={handleSaveProgramDraft} className="space-y-4">
+        <form onSubmit={handleSaveProgram} className="space-y-4">
           <h2 className="text-xl font-bold text-slate-900 border-b pb-4 mb-4">
             Add New Phase
           </h2>
@@ -505,7 +467,6 @@ export default function CourseDetail() {
             </label>
             <input
               id="phase-title"
-              autoFocus
               value={programForm.title}
               onChange={(e) =>
                 setProgramForm((p) => ({ ...p, title: e.target.value }))
@@ -542,9 +503,10 @@ export default function CourseDetail() {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-brand-teal text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-teal/20 cursor-pointer"
+              disabled={programSaving}
+              className="px-6 py-2 bg-brand-teal text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-teal/20 cursor-pointer disabled:opacity-60"
             >
-              Add Phase Draft
+              {programSaving ? "Adding…" : "Add Phase"}
             </button>
           </div>
         </form>
@@ -558,10 +520,14 @@ export default function CourseDetail() {
           </h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="phase-edit-title"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Title <span className="text-red-500">*</span>
               </label>
               <input
+                id="phase-edit-title"
                 type="text"
                 value={phaseEditModal.title}
                 onChange={(e) =>
@@ -574,10 +540,14 @@ export default function CourseDetail() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="phase-edit-description"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Description
               </label>
               <textarea
+                id="phase-edit-description"
                 value={phaseEditModal.description}
                 onChange={(e) =>
                   setPhaseEditModal((p) =>
@@ -844,18 +814,9 @@ export default function CourseDetail() {
                 showToast("Title is required.", "warning");
                 return;
               }
-              const formats = SUBMISSION_FORMATS.filter((f) => {
-                if (f.id === "link") return nodeEditModal.taskAllowLink;
-                if (f.id === "paragraph")
-                  return nodeEditModal.taskAllowParagraph;
-                if (f.id === "pdf") return nodeEditModal.taskAllowPdf;
-                if (f.id === "screenshot")
-                  return nodeEditModal.taskAllowScreenshot;
-                if (f.id === "codeblock")
-                  return nodeEditModal.taskAllowCodeBlock;
-                if (f.id === "file") return nodeEditModal.taskAllowFile;
-                return false;
-              });
+              const formats = SUBMISSION_FORMATS.filter(
+                (f) => nodeEditModal[TASK_FORMAT_FIELDS[f.id]],
+              );
               if (formats.length === 0) {
                 showToast("Select at least one submission format.", "warning");
                 return;
@@ -913,30 +874,8 @@ export default function CourseDetail() {
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {SUBMISSION_FORMATS.map((f) => {
-                  const checked =
-                    f.id === "link"
-                      ? nodeEditModal.taskAllowLink
-                      : f.id === "paragraph"
-                        ? nodeEditModal.taskAllowParagraph
-                        : f.id === "pdf"
-                          ? nodeEditModal.taskAllowPdf
-                          : f.id === "screenshot"
-                            ? nodeEditModal.taskAllowScreenshot
-                            : f.id === "codeblock"
-                              ? nodeEditModal.taskAllowCodeBlock
-                              : nodeEditModal.taskAllowFile;
-                  const key =
-                    f.id === "link"
-                      ? "taskAllowLink"
-                      : f.id === "paragraph"
-                        ? "taskAllowParagraph"
-                        : f.id === "pdf"
-                          ? "taskAllowPdf"
-                          : f.id === "screenshot"
-                            ? "taskAllowScreenshot"
-                            : f.id === "codeblock"
-                              ? "taskAllowCodeBlock"
-                              : "taskAllowFile";
+                  const key = TASK_FORMAT_FIELDS[f.id];
+                  const checked = nodeEditModal[key];
                   return (
                     <label
                       key={f.id}
@@ -1047,18 +986,7 @@ export default function CourseDetail() {
                                 type="checkbox"
                                 checked={q.multiSelect}
                                 onChange={() =>
-                                  setNodeEditModal((p) => {
-                                    if (!p) return p;
-                                    const qs = [...p.quizQuestions];
-                                    qs[qi] = {
-                                      ...qs[qi],
-                                      multiSelect: !qs[qi].multiSelect,
-                                      correctOptionIds: qs[
-                                        qi
-                                      ].correctOptionIds.slice(0, 1),
-                                    };
-                                    return { ...p, quizQuestions: qs };
-                                  })
+                                  setNodeEditModal(toggleMultiSelect(qi))
                                 }
                                 className="text-brand-teal focus:ring-brand-teal rounded"
                               />
@@ -1069,16 +997,7 @@ export default function CourseDetail() {
                             <button
                               type="button"
                               onClick={() =>
-                                setNodeEditModal((p) =>
-                                  p
-                                    ? {
-                                        ...p,
-                                        quizQuestions: p.quizQuestions.filter(
-                                          (_, i) => i !== qi,
-                                        ),
-                                      }
-                                    : p,
-                                )
+                                setNodeEditModal(removeQuestion(qi))
                               }
                               className="text-xs text-red-500 hover:text-red-700 font-medium"
                             >
@@ -1089,12 +1008,7 @@ export default function CourseDetail() {
                         <input
                           value={q.text}
                           onChange={(e) =>
-                            setNodeEditModal((p) => {
-                              if (!p) return p;
-                              const qs = [...p.quizQuestions];
-                              qs[qi] = { ...qs[qi], text: e.target.value };
-                              return { ...p, quizQuestions: qs };
-                            })
+                            setNodeEditModal(setQuestionText(qi, e.target.value))
                           }
                           placeholder="Question text"
                           className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal outline-none bg-white"
@@ -1115,21 +1029,7 @@ export default function CourseDetail() {
                                 name={`correct-${q.id}`}
                                 checked={q.correctOptionIds.includes(opt.id)}
                                 onChange={() =>
-                                  setNodeEditModal((p) => {
-                                    if (!p) return p;
-                                    const qs = [...p.quizQuestions];
-                                    const curr = qs[qi].correctOptionIds;
-                                    const newIds = q.multiSelect
-                                      ? curr.includes(opt.id)
-                                        ? curr.filter((id) => id !== opt.id)
-                                        : [...curr, opt.id]
-                                      : [opt.id];
-                                    qs[qi] = {
-                                      ...qs[qi],
-                                      correctOptionIds: newIds,
-                                    };
-                                    return { ...p, quizQuestions: qs };
-                                  })
+                                  setNodeEditModal(toggleCorrectOption(qi, opt.id))
                                 }
                                 className="text-brand-teal focus:ring-brand-teal"
                                 title="Mark as correct"
@@ -1137,17 +1037,9 @@ export default function CourseDetail() {
                               <input
                                 value={opt.text}
                                 onChange={(e) =>
-                                  setNodeEditModal((p) => {
-                                    if (!p) return p;
-                                    const qs = [...p.quizQuestions];
-                                    const opts = [...qs[qi].options];
-                                    opts[oi] = {
-                                      ...opts[oi],
-                                      text: e.target.value,
-                                    };
-                                    qs[qi] = { ...qs[qi], options: opts };
-                                    return { ...p, quizQuestions: qs };
-                                  })
+                                  setNodeEditModal(
+                                    setOptionText(qi, oi, e.target.value),
+                                  )
                                 }
                                 placeholder={`Option ${oi + 1}`}
                                 className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal outline-none bg-white"
@@ -1156,26 +1048,7 @@ export default function CourseDetail() {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    setNodeEditModal((p) => {
-                                      if (!p) return p;
-                                      const qs = [...p.quizQuestions];
-                                      const opts = qs[qi].options.filter(
-                                        (_, i) => i !== oi,
-                                      );
-                                      const validIds = qs[
-                                        qi
-                                      ].correctOptionIds.filter(
-                                        (id) =>
-                                          id !== opt.id &&
-                                          opts.some((o) => o.id === id),
-                                      );
-                                      qs[qi] = {
-                                        ...qs[qi],
-                                        options: opts,
-                                        correctOptionIds: validIds,
-                                      };
-                                      return { ...p, quizQuestions: qs };
-                                    })
+                                    setNodeEditModal(removeOption(qi, oi))
                                   }
                                   className="text-slate-400 hover:text-red-500 text-xs"
                                 >
@@ -1186,21 +1059,7 @@ export default function CourseDetail() {
                           ))}
                           <button
                             type="button"
-                            onClick={() =>
-                              setNodeEditModal((p) => {
-                                if (!p) return p;
-                                const qs = [...p.quizQuestions];
-                                const newOpt = {
-                                  id: `o-${Date.now()}`,
-                                  text: "",
-                                };
-                                qs[qi] = {
-                                  ...qs[qi],
-                                  options: [...qs[qi].options, newOpt],
-                                };
-                                return { ...p, quizQuestions: qs };
-                              })
-                            }
+                            onClick={() => setNodeEditModal(addOption(qi))}
                             className="text-xs text-brand-teal hover:underline font-medium mt-1"
                           >
                             + Add option
@@ -1210,27 +1069,7 @@ export default function CourseDetail() {
                     ))}
                     <button
                       type="button"
-                      onClick={() =>
-                        setNodeEditModal((p) => {
-                          if (!p) return p;
-                          const t = Date.now();
-                          const opt0 = `o-${t}-0`;
-                          const newQ = {
-                            id: `q-${t}`,
-                            text: "",
-                            options: [
-                              { id: opt0, text: "" },
-                              { id: `o-${t}-1`, text: "" },
-                            ],
-                            correctOptionIds: [],
-                            multiSelect: false,
-                          };
-                          return {
-                            ...p,
-                            quizQuestions: [...p.quizQuestions, newQ],
-                          };
-                        })
-                      }
+                      onClick={() => setNodeEditModal(addQuestion)}
                       className="w-full py-2 rounded-xl border border-dashed border-brand-teal/40 text-brand-teal text-xs font-semibold hover:bg-brand-teal/5"
                     >
                       + Add question
@@ -1286,15 +1125,7 @@ export default function CourseDetail() {
                       }
                       try {
                         const questionsInput = buildQuestionsInputJson(
-                          nodeEditModal.quizQuestions.map((q) => ({
-                            text: q.text,
-                            options: q.options.map((o) => o.text),
-                            correctIndices: q.correctOptionIds
-                              .map((id) =>
-                                q.options.findIndex((o) => o.id === id),
-                              )
-                              .filter((i) => i >= 0),
-                          })),
+                          nodeEditModal.quizQuestions.map(toQuestionInput),
                         );
                         await updateModuleNodeApi(
                           orgId,
@@ -1333,7 +1164,91 @@ export default function CourseDetail() {
   );
 }
 
-const SUBMISSION_FORMATS = [
+/* ── Quiz editor state updaters (kept flat to avoid deeply nested callbacks) ── */
+
+type EditState = NodeEditModalState | null;
+type QuizQuestion = NodeEditModalState["quizQuestions"][number];
+
+/** Returns a state updater that changes one quiz question. */
+function updateQuestion(qi: number, change: (q: QuizQuestion) => QuizQuestion) {
+  return (p: EditState): EditState => {
+    if (!p) return p;
+    const quizQuestions = [...p.quizQuestions];
+    quizQuestions[qi] = change(quizQuestions[qi]);
+    return { ...p, quizQuestions };
+  };
+}
+
+function nextCorrectOptionIds(q: QuizQuestion, optionId: string): string[] {
+  if (!q.multiSelect) return [optionId];
+  return q.correctOptionIds.includes(optionId)
+    ? q.correctOptionIds.filter((id) => id !== optionId)
+    : [...q.correctOptionIds, optionId];
+}
+
+const toggleMultiSelect = (qi: number) =>
+  updateQuestion(qi, (q) => ({
+    ...q,
+    multiSelect: !q.multiSelect,
+    correctOptionIds: q.correctOptionIds.slice(0, 1),
+  }));
+
+const setQuestionText = (qi: number, text: string) =>
+  updateQuestion(qi, (q) => ({ ...q, text }));
+
+const toggleCorrectOption = (qi: number, optionId: string) =>
+  updateQuestion(qi, (q) => ({ ...q, correctOptionIds: nextCorrectOptionIds(q, optionId) }));
+
+const setOptionText = (qi: number, oi: number, text: string) =>
+  updateQuestion(qi, (q) => ({
+    ...q,
+    options: q.options.map((o, i) => (i === oi ? { ...o, text } : o)),
+  }));
+
+const removeOption = (qi: number, oi: number) =>
+  updateQuestion(qi, (q) => {
+    const options = q.options.filter((_, i) => i !== oi);
+    return {
+      ...q,
+      options,
+      correctOptionIds: q.correctOptionIds.filter((id) => options.some((o) => o.id === id)),
+    };
+  });
+
+const addOption = (qi: number) =>
+  updateQuestion(qi, (q) => ({
+    ...q,
+    options: [...q.options, { id: `o-${Date.now()}`, text: "" }],
+  }));
+
+const removeQuestion = (qi: number) => (p: EditState): EditState =>
+  p ? { ...p, quizQuestions: p.quizQuestions.filter((_, i) => i !== qi) } : p;
+
+/** Converts an edited quiz question into the shape `buildQuestionsInputJson` expects. */
+function toQuestionInput(q: QuizQuestion) {
+  const correctIndices = q.correctOptionIds
+    .map((id) => q.options.findIndex((o) => o.id === id))
+    .filter((i) => i >= 0);
+  return { text: q.text, options: q.options.map((o) => o.text), correctIndices };
+}
+
+function addQuestion(p: EditState): EditState {
+  if (!p) return p;
+  const t = Date.now();
+  const question: QuizQuestion = {
+    id: `q-${t}`,
+    text: "",
+    options: [
+      { id: `o-${t}-0`, text: "" },
+      { id: `o-${t}-1`, text: "" },
+    ],
+    correctOptionIds: [],
+    multiSelect: false,
+  };
+  return { ...p, quizQuestions: [...p.quizQuestions, question] };
+}
+
+const SUBMISSION_FORMATS: { id: SubmissionFormat; label: string }[] = [
   { id: "link", label: "Link" },
   { id: "paragraph", label: "Paragraph" },
   { id: "pdf", label: "PDF" },

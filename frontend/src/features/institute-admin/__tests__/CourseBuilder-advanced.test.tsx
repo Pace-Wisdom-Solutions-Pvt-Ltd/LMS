@@ -6,7 +6,7 @@ import { render, screen, fireEvent, within, waitFor, cleanup } from '@testing-li
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import InstituteAdminCourseBuilder from '../course-builder/CourseBuilder'
 import * as orgApi from '../../../lib/api/organizations'
-import type { ApiCourseModule, ApiModuleNode } from '../../../lib/api/organizations'
+import type { ApiChapter, ApiCourseModule, ApiModuleNode } from '../../../lib/api/organizations'
 import * as storeModule from '../store'
 import { showToast } from '../../../lib/toastApi'
 
@@ -25,11 +25,15 @@ vi.mock('@/lib/api/organizations', () => ({
   createCourseApi: vi.fn(),
   createCourseModuleApi: vi.fn(),
   createModuleNodeApi: vi.fn(),
+  createChapterApi: vi.fn(),
   deleteCourseModuleApi: vi.fn(),
   deleteModuleNodeApi: vi.fn(),
+  deleteChapterApi: vi.fn(),
   getCoursesApi: vi.fn().mockResolvedValue([]),
   getCourseModulesApi: vi.fn(),
+  getModuleChaptersApi: vi.fn(),
   getModuleNodesApi: vi.fn(),
+  updateChapterApi: vi.fn(),
   getModuleNodeApi: vi.fn(),
   updateCourseModuleApi: vi.fn(),
   updateModuleNodeApi: vi.fn(),
@@ -71,14 +75,13 @@ describe('CourseBuilder Advanced Interactions', () => {
   const mockModules = [
     { id: 'mod-1', title: 'Module 1', sequence_order: 1 },
   ]
-  const mockNodes = [
-    { id: 'node-1', title: 'Phase One', prerequisite_node: null, sequence_order: 1 },
-  ]
+  const mockChapters: ApiChapter[] = [{ id: 1, title: 'Phase One', sequence_order: 1 }]
 
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(orgApi.getCourseModulesApi).mockResolvedValue(mockModules as unknown as ApiCourseModule[])
-    vi.mocked(orgApi.getModuleNodesApi).mockResolvedValue(mockNodes as unknown as ApiModuleNode[])
+    vi.mocked(orgApi.getModuleChaptersApi).mockResolvedValue(mockChapters)
+    vi.mocked(orgApi.getModuleNodesApi).mockResolvedValue([])
   })
 
   afterEach(() => cleanup())
@@ -130,6 +133,7 @@ describe('CourseBuilder Advanced Interactions', () => {
           learning_material_content_type: 'Link',
           learning_material_content_url: 'https://youtube.com/watch?v=123',
           focus_areas: 'Focus here',
+          chapter: 1,
         }),
       )
     })
@@ -159,7 +163,7 @@ describe('CourseBuilder Advanced Interactions', () => {
         'org-123',
         'course-456',
         'mod-1',
-        expect.objectContaining({ task_title: 'New Task', task_allow_pdf: true }),
+        expect.objectContaining({ task_title: 'New Task', task_allow_pdf: true, chapter: 1 }),
       )
     })
     expect(storeModule.addProgramTask).not.toHaveBeenCalled()
@@ -203,7 +207,7 @@ describe('CourseBuilder Advanced Interactions', () => {
         'org-123',
         'course-456',
         'mod-1',
-        expect.objectContaining({ quiz_name: 'Midterm Quiz' }),
+        expect.objectContaining({ quiz_name: 'Midterm Quiz', chapter: 1 }),
       )
     })
     const payload = vi.mocked(orgApi.createModuleNodeApi).mock.calls.at(-1)?.[3]
@@ -235,15 +239,36 @@ describe('CourseBuilder Advanced Interactions', () => {
       // Edit flow refreshes nodes before opening the modal.
       expect(orgApi.getModuleNodesApi).toHaveBeenCalled()
     })
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Edit Chapter')).toBeTruthy()
+    expect(within(dialog).getByDisplayValue('Phase One')).toBeTruthy()
+  })
+
+  it('saves chapter edits through the chapters API', async () => {
+    vi.mocked(orgApi.updateChapterApi).mockResolvedValueOnce({ id: 1, title: 'Renamed' })
+    renderComponent()
+    await waitFor(() => screen.getByText('Phase One'))
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Edit phase$/i })[0])
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByDisplayValue('Phase One'), { target: { value: 'Renamed' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => {
+      expect(orgApi.updateChapterApi).toHaveBeenCalledWith('org-123', 'course-456', 'mod-1', 1, {
+        title: 'Renamed',
+        description: '',
+      })
+      expect(showToast).toHaveBeenCalledWith('Chapter updated.', 'success')
+    })
   })
 
   it('edits an API item via Edit item modal (validates + handles API error)', async () => {
     const nodesWithChild = [
-      { id: 1, title: 'Phase One', prerequisite_node: null, sequence_order: 1 },
       {
         id: 2,
         title: 'Lesson 1',
-        prerequisite_node: 1,
+        chapter: 1,
         sequence_order: 2,
         description: 'desc',
         content_type: 'link',
@@ -323,11 +348,10 @@ describe('CourseBuilder Advanced Interactions', () => {
 
   it('saves API item with empty URL (omits url fields) and closes modal on success', async () => {
     const nodesWithChild = [
-      { id: 1, title: 'Phase One', prerequisite_node: null, sequence_order: 1 },
       {
         id: 2,
         title: 'Lesson 2',
-        prerequisite_node: 1,
+        chapter: 1,
         sequence_order: 2,
         description: 'desc',
         content_type: 'link',
@@ -386,7 +410,7 @@ describe('CourseBuilder Advanced Interactions', () => {
     fireEvent.click(deleteBtns[0])
 
     const confirmDialog = await screen.findByRole('dialog')
-    expect(within(confirmDialog).getByText(/delete this phase and its items\\?/i)).toBeTruthy()
+    expect(within(confirmDialog).getByText(/delete this chapter and its items\?/i)).toBeTruthy()
 
     // Close via modal X (covers confirm modal onClose handler)
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^close$/i }))
@@ -398,12 +422,12 @@ describe('CourseBuilder Advanced Interactions', () => {
     fireEvent.click(within(confirmDialog2).getByRole('button', { name: /cancel/i }))
 
     await waitFor(() => {
-      expect(orgApi.deleteModuleNodeApi).not.toHaveBeenCalled()
+      expect(orgApi.deleteChapterApi).not.toHaveBeenCalled()
     })
   })
 
   it('deletes API phase when confirmed (success path)', async () => {
-    vi.mocked(orgApi.deleteModuleNodeApi).mockResolvedValueOnce(undefined)
+    vi.mocked(orgApi.deleteChapterApi).mockResolvedValueOnce(undefined)
 
     renderComponent()
     await waitFor(() => screen.getByText('Phase One'))
@@ -415,13 +439,13 @@ describe('CourseBuilder Advanced Interactions', () => {
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^ok$/i }))
 
     await waitFor(() => {
-      expect(orgApi.deleteModuleNodeApi).toHaveBeenCalled()
-      expect(showToast).toHaveBeenCalledWith('Phase deleted.', 'success')
+      expect(orgApi.deleteChapterApi).toHaveBeenCalledWith('org-123', 'course-456', 'mod-1', 1)
+      expect(showToast).toHaveBeenCalledWith('Chapter deleted.', 'success')
     })
   })
 
   it('shows error toast when API phase delete fails', async () => {
-    vi.mocked(orgApi.deleteModuleNodeApi).mockRejectedValueOnce(new Error('delete failed'))
+    vi.mocked(orgApi.deleteChapterApi).mockRejectedValueOnce(new Error('delete failed'))
 
     renderComponent()
     await waitFor(() => screen.getByText('Phase One'))
@@ -433,7 +457,7 @@ describe('CourseBuilder Advanced Interactions', () => {
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^ok$/i }))
 
     await waitFor(() => {
-      expect(orgApi.deleteModuleNodeApi).toHaveBeenCalled()
+      expect(orgApi.deleteChapterApi).toHaveBeenCalled()
       expect(showToast).toHaveBeenCalledWith('delete failed', 'error')
     })
   })

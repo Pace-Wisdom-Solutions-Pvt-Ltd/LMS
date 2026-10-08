@@ -10,11 +10,13 @@ import type {
   ApiRoadmapNode,
 } from "@/lib/api/organizations";
 import { getStoredOrganizations } from "@/lib/auth";
+import { showToast } from "@/lib/toastApi";
 import BackButton from "@/components/ui/BackButton";
 import ExpandableText from "@/components/ui/ExpandableText";
 import RoadmapSkeleton from "@/components/course/RoadmapSkeleton";
 import { getMeta } from "./courseMeta";
 import CurriculumSection from "./CurriculumSection";
+import RoadmapChapters from "./RoadmapChapters";
 import CourseCompletionModal from "./CourseCompletionModal";
 
 type DoneMap = Record<number, boolean>;
@@ -83,6 +85,9 @@ export default function DetailedRoadmap({
       .then((res) => {
         setData(res.modules || []);
         if (!expandedId && res.modules?.[0]) setExpandedId(res.modules[0].id);
+      })
+      .catch((err: unknown) => {
+        showToast(err instanceof Error ? err.message : "Failed to load course.", "error");
       })
       .finally(() => setLoading(false));
   }, [id, tick, orgId]);
@@ -279,15 +284,27 @@ function RoadmapModule({
 
         {isExpanded && !isLocked && (
           <div className="p-5 pt-0 bg-slate-50/20 rounded-b-2xl">
-            <CurriculumSection
-              nodes={m.nodes}
-              orgId={orgId}
-              courseId={courseId}
-              moduleId={String(m.id)}
-              localDone={localDone}
-              onNodeDone={onNodeDone}
-              onUpdated={onUpdated}
-            />
+            {m.chapters && m.chapters.length > 0 ? (
+              <RoadmapChapters
+                module={m}
+                orgId={orgId}
+                courseId={courseId}
+                moduleId={String(m.id)}
+                localDone={localDone}
+                onNodeDone={onNodeDone}
+                onUpdated={onUpdated}
+              />
+            ) : (
+              <CurriculumSection
+                nodes={m.nodes}
+                orgId={orgId}
+                courseId={courseId}
+                moduleId={String(m.id)}
+                localDone={localDone}
+                onNodeDone={onNodeDone}
+                onUpdated={onUpdated}
+              />
+            )}
           </div>
         )}
       </div>
