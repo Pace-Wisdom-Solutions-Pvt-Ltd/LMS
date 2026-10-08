@@ -67,6 +67,7 @@ class GlobalUserUUIDField(serializers.Field):
         return str(value) if value else None
 
 TIMER_HELP_TEXT = "Quiz timer in minutes. Leave empty for no timer."
+PASSING_PERCENTAGE_HELP_TEXT = "Minimum score (0-100) needed to pass the quiz. Defaults to 70."
 
 
 
@@ -333,7 +334,7 @@ class QuizSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quiz
-        fields = ['id', 'node', 'name', 'timer_minutes', 'questions', 'created_at', 'updated_at']
+        fields = ['id', 'node', 'name', 'timer_minutes', 'passing_percentage', 'questions', 'created_at', 'updated_at']
         read_only_fields = ['node']
 
 # --- STUDENT QUIZ SERIALIZERS (Hides is_correct) ---
@@ -356,25 +357,28 @@ class StudentQuizSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quiz
-        fields = ['id', 'name', 'timer_minutes', 'questions']
+        fields = ['id', 'name', 'timer_minutes', 'passing_percentage', 'questions']
+        read_only_fields = ['passing_percentage']
 
 
 class RoadmapQuizSerializer(serializers.ModelSerializer):
     questions = StudentQuizQuestionSerializer(many=True, read_only=True)
     timer_minutes = serializers.IntegerField(read_only=True)
+    passing_percentage = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Quiz
-        fields = ['id', 'name', 'timer_minutes', 'questions']
+        fields = ['id', 'name', 'timer_minutes', 'passing_percentage', 'questions']
 
 
 class RoadmapQuizWithAnswersSerializer(serializers.ModelSerializer):
     questions = QuizQuestionSerializer(many=True, read_only=True)
     timer_minutes = serializers.IntegerField(read_only=True)
+    passing_percentage = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Quiz
-        fields = ['id', 'name', 'timer_minutes', 'questions']
+        fields = ['id', 'name', 'timer_minutes', 'passing_percentage', 'questions']
 
 # ── QUIZ INPUT STRUCTURES (For Interactive Swagger Buttons) ─────────────────
 
@@ -426,6 +430,7 @@ class QuizQuestionInputSerializer(serializers.Serializer):
 class QuizInputSerializer(serializers.Serializer):
     name = serializers.CharField(help_text="Quiz Title")
     timer_minutes = serializers.IntegerField(required=False, allow_null=True, help_text=TIMER_HELP_TEXT)
+    passing_percentage = serializers.IntegerField(required=False, min_value=0, max_value=100, help_text=PASSING_PERCENTAGE_HELP_TEXT)
     questions = QuizQuestionInputSerializer(many=True)
 
 class NodeSerializer(serializers.ModelSerializer):
@@ -458,6 +463,7 @@ class NodeSerializer(serializers.ModelSerializer):
     # Quiz WRITE fields (Flattened - NO JSON - for single question)
     quiz_name = serializers.CharField(required=False, write_only=True)
     quiz_timer_minutes = serializers.IntegerField(required=False, allow_null=True, write_only=True, help_text=TIMER_HELP_TEXT)
+    quiz_passing_percentage = serializers.IntegerField(required=False, write_only=True, min_value=0, max_value=100, help_text=PASSING_PERCENTAGE_HELP_TEXT)
     quiz_question_text = serializers.CharField(required=False, write_only=True, allow_blank=True)
     quiz_option_a = serializers.CharField(required=False, write_only=True, allow_blank=True)
     quiz_option_b = serializers.CharField(required=False, write_only=True, allow_blank=True)
@@ -654,14 +660,16 @@ class NodeSerializer(serializers.ModelSerializer):
                 is_correct=(current_label in normalized_labels)
             )
 
-    def _create_quiz(self, node, quiz_name, quiz_q_text, q_options_fixed, q_options_extra, quiz_correct_labels, quiz_allow_multiple, questions_input, timer_minutes=None):
+    def _create_quiz(self, node, quiz_name, quiz_q_text, q_options_fixed, q_options_extra, quiz_correct_labels, quiz_allow_multiple, questions_input, timer_minutes=None, passing_percentage=None):
         if not quiz_q_text and not questions_input:
             return
 
+        quiz_fields = {'passing_percentage': passing_percentage} if passing_percentage is not None else {}
         quiz = Quiz.objects.create(
             node=node,
             name=quiz_name or 'Lesson Quiz',
             timer_minutes=timer_minutes,
+            **quiz_fields,
         )
 
         if quiz_q_text:
@@ -708,6 +716,7 @@ class NodeSerializer(serializers.ModelSerializer):
         return {
             'quiz_name': validated_data.pop('quiz_name', None),
             'quiz_timer_minutes': validated_data.pop('quiz_timer_minutes', None),
+            'quiz_passing_percentage': validated_data.pop('quiz_passing_percentage', None),
             'quiz_question_text': validated_data.pop('quiz_question_text', None),
             'fixed_options': fixed_options,
             'extra_options': validated_data.pop('quiz_extra_options', []) or [],
@@ -740,6 +749,7 @@ class NodeSerializer(serializers.ModelSerializer):
                 payload['allow_multiple_correct'],
                 payload['questions_input'],
                 timer_minutes=payload['quiz_timer_minutes'],
+                passing_percentage=payload['quiz_passing_percentage'],
             )
 
         for quiz_data in extra_quizzes:
@@ -751,6 +761,7 @@ class NodeSerializer(serializers.ModelSerializer):
                 False,
                 quiz_data.get('questions', []),
                 timer_minutes=quiz_data.get('timer_minutes'),
+                passing_percentage=quiz_data.get('passing_percentage'),
             )
 
     def _validate_learning_material_url(self, data):
@@ -904,7 +915,7 @@ class NodeSerializer(serializers.ModelSerializer):
             'task_title', 'task_allow_link', 'task_allow_paragraph', 'task_allow_pdf',
             'task_allow_screenshot', 'task_allow_code_block', 'task_allow_file',
             'task_description', 'task_attachment',
-            'quiz_name', 'quiz_timer_minutes', 'quiz_question_text', 'quiz_option_a', 'quiz_option_b',
+            'quiz_name', 'quiz_timer_minutes', 'quiz_passing_percentage', 'quiz_question_text', 'quiz_option_a', 'quiz_option_b',
             'quiz_option_c', 'quiz_option_d', 'quiz_extra_options', 'quiz_correct_option',
             'quiz_correct_options', 'quiz_allow_multiple_correct',
             'questions_input', 'quizzes_input',
@@ -968,6 +979,7 @@ class NodeContentUpdateSerializer(serializers.Serializer):
     # Quiz fields
     quiz_name = serializers.CharField(required=False)
     quiz_timer_minutes = serializers.IntegerField(required=False, allow_null=True, help_text=TIMER_HELP_TEXT)
+    quiz_passing_percentage = serializers.IntegerField(required=False, min_value=0, max_value=100, help_text=PASSING_PERCENTAGE_HELP_TEXT)
     quiz_question_text = serializers.CharField(required=False, allow_blank=True)
     quiz_option_a = serializers.CharField(required=False, allow_blank=True)
     quiz_option_b = serializers.CharField(required=False, allow_blank=True)
@@ -1621,13 +1633,23 @@ class QuizSubmissionSerializer(serializers.ModelSerializer):
                 question_selected_options.setdefault(question_id, set()).update(valid_option_ids)
         return question_selected_options
 
-    def _update_node_progress(self, quiz, student, submission_passed=True):
-        """Update student's node progress to Completed."""
-        StudentNodeProgress.objects.update_or_create(
+    def _update_node_progress(self, quiz, student, submission_passed):
+        """Mark the node Completed on a pass; a failed attempt never downgrades an earlier pass."""
+        if submission_passed:
+            StudentNodeProgress.objects.update_or_create(
+                student=student,
+                node=quiz.node,
+                defaults={'status': 'Completed'}
+            )
+            return
+        progress, created = StudentNodeProgress.objects.get_or_create(
             student=student,
             node=quiz.node,
-            defaults={'status': 'Completed'}
+            defaults={'status': 'In_Progress'}
         )
+        if not created and progress.status in ('Locked', 'Unlocked'):
+            progress.status = 'In_Progress'
+            progress.save()
 
     def create(self, validated_data):
         answers_data = validated_data.pop('answers', [])
@@ -1641,7 +1663,7 @@ class QuizSubmissionSerializer(serializers.ModelSerializer):
         submission = QuizSubmission.objects.create(
             student=student, 
             quiz=quiz,
-            status='Passed',
+            status='Failed',
             attempt_number=attempt_number,
             raw_answers_data=serializable_answers
         )
@@ -1650,13 +1672,15 @@ class QuizSubmissionSerializer(serializers.ModelSerializer):
         correct_answers = self._calculate_correct_count(quiz, question_selected_options)
         
         score = (correct_answers / total_questions * 100) if total_questions > 0 else 0
-        passed = True
+        # Compare with integers to avoid float rounding at the boundary (e.g. 57/100).
+        # A quiz with no questions has nothing to fail.
+        passed = total_questions == 0 or correct_answers * 100 >= quiz.passing_percentage * total_questions
 
         submission.total_questions = total_questions
         submission.correct_answers = correct_answers
         submission.score = score
         submission.passed = passed
-        submission.status = 'Passed'
+        submission.status = 'Passed' if passed else 'Failed'
         submission.save()
 
         self._update_node_progress(quiz, student, passed)

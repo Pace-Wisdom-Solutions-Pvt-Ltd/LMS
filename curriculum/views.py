@@ -1131,11 +1131,13 @@ class NodeContentUpdateAPIView(APIView):
                 is_correct=(current_label in normalized_labels)
             )
 
-    def _create_single_quiz(self, node, quiz_name, quick_text, fixed_options, extra_options, correct_labels, allow_multiple, questions_input, timer_minutes=None):
+    def _create_single_quiz(self, node, quiz_name, quick_text, fixed_options, extra_options, correct_labels, allow_multiple, questions_input, timer_minutes=None, passing_percentage=None):
+        quiz_fields = {'passing_percentage': passing_percentage} if passing_percentage is not None else {}
         quiz = Quiz.objects.create(
             node=node,
             name=quiz_name or 'Lesson Quiz',
             timer_minutes=timer_minutes,
+            **quiz_fields,
         )
 
         if quick_text:
@@ -1176,6 +1178,7 @@ class NodeContentUpdateAPIView(APIView):
         return {
             'name': validated_data.get('quiz_name'),
             'timer': validated_data.get('quiz_timer_minutes'),
+            'passing_percentage': validated_data.get('quiz_passing_percentage'),
             'text': validated_data.get('quiz_question_text'),
             'fixed': [
                 validated_data.get('quiz_option_a'),
@@ -1204,6 +1207,7 @@ class NodeContentUpdateAPIView(APIView):
                 node, qd['name'], qd['text'], qd['fixed'], qd['extra'],
                 qd['labels'], qd['multiple'], qd['questions'],
                 timer_minutes=qd['timer'],
+                passing_percentage=qd['passing_percentage'],
             )
 
         for quiz_data in qd['quizzes']:
@@ -1215,6 +1219,7 @@ class NodeContentUpdateAPIView(APIView):
                 False,
                 quiz_data.get('questions', []),
                 timer_minutes=quiz_data.get('timer_minutes'),
+                passing_percentage=quiz_data.get('passing_percentage'),
             )
 
         node.refresh_from_db()

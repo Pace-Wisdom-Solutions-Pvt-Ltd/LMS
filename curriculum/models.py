@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
+from django.core.validators import MaxValueValidator
 from django.db import models
 from accounts.models import User
 from organizations.managers import TenantIsolatedManager
@@ -221,6 +222,11 @@ class Quiz(SoftDeleteMixin):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='quizzes')
     name = models.CharField(max_length=255)
     timer_minutes = models.PositiveIntegerField(null=True, blank=True, help_text="Quiz timer in minutes. Null means no timer.")
+    passing_percentage = models.PositiveIntegerField(
+        default=70,
+        validators=[MaxValueValidator(100)],
+        help_text="Minimum score (0-100) a student needs to pass the quiz."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
