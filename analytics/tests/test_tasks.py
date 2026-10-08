@@ -108,3 +108,35 @@ def test_calculate_daily_analytics_batch_metrics():
         student__batch_enrollments__batch=batch,
         status='In_Progress'
     ).query)
+
+@pytest.mark.django_db
+def test_batch_avg_score_is_scoped_to_batch_students():
+    """Batches in the same organization must not share an org-wide average."""
+    from curriculum.models import Assessment
+    yesterday = timezone.now().date() - timedelta(days=1)
+    org = Organization.objects.create(name="Scoped Org", is_active=True)
+    student_role, _ = Role.objects.get_or_create(name="student", defaults={"description": "Student role"})
+    course = Course.objects.create(title="Scoped Course", organization=org)
+    module = Module.objects.create(title="Scoped Module", course=course)
+    node = Node.objects.create(module=module, title="Scoped Node", sequence_order=1)
+    assessment = Assessment.objects.create(node=node, assignment_type='MCQ', prompt='Scoped', passing_score_percentage=50)
+
+    batches = []
+    for name, score in (("Batch A", 90), ("Batch B", 30)):
+        batch = Batch.objects.create(
+            name=name,
+            is_active=True,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+            organization=org,
+        )
+        user = User.objects.create(email=f"{name.replace(' ', '').lower()}@scoped.com", username=name)
+        OrganizationMember.objects.create(organization=org, user=user, role=student_role)
+        BatchStudent.objects.create(batch=batch, student=user)
+        AssignmentSubmission.objects.create(assessment=assessment, student=user, awarded_score=score, status="Graded", payload={})
+        batches.append(batch)
+
+    calculate_daily_analytics()
+
+    assert DailyBatchMetrics.objects.get(batch=batches[0], date=yesterday).avg_assignment_score == pytest.approx(90.0)
+    assert DailyBatchMetrics.objects.get(batch=batches[1], date=yesterday).avg_assignment_score == pytest.approx(30.0)

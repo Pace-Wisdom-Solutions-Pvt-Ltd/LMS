@@ -55,9 +55,11 @@ def calculate_daily_analytics():
     # 2. BATCH LEVEL METRICS
     batches = Batch.objects.filter(is_active=True)
     for batch in batches:
-        # Calculate average assignment score
+        # Calculate average assignment score for students enrolled in this batch
         avg_score = AssignmentSubmission.objects.filter(
-            student__organization=batch.organization,  # Ensure correct linkage
+            student__batch_enrollments__batch=batch,
+            student__batch_enrollments__is_active=True,
+            student__batch_enrollments__is_deleted=False,
             status='Graded'
         ).aggregate(Avg('awarded_score'))['awarded_score__avg']
         
