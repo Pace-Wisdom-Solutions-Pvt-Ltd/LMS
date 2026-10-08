@@ -50,4 +50,8 @@ def use_local_storage(settings):
             "LOCATION": "unique-snowflake-key",
         }
     }
+    # Start each test with an empty cache so rate-limit counters on the
+    # auth endpoints do not carry over between tests.
+    from django.core.cache import cache
+    cache.clear()
 

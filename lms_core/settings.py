@@ -187,6 +187,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Rates for the unauthenticated auth endpoints (see accounts/views.py).
+    # Clients are identified by IP; set NUM_PROXIES when running behind a proxy.
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": get_secret("THROTTLE_RATE_LOGIN", default="5/minute"),
+        "auth_password_reset_email": get_secret("THROTTLE_RATE_PASSWORD_RESET_EMAIL", default="5/hour"),
+        "auth_token": get_secret("THROTTLE_RATE_AUTH_TOKEN", default="10/minute"),
+    },
+    "NUM_PROXIES": get_secret("NUM_PROXIES", default=None, cast=int),
 }
 
 # ── Simple JWT ────────────────────────────────────────────────────────────────

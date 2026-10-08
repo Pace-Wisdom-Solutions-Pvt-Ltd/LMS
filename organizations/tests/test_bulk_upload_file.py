@@ -135,29 +135,51 @@ class TestBulkUploadFile:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Missing mandatory 'email' column" in response.data['error']
 
-    def test_bulk_upload_old_batch_assignment_date_exceeded(self, api_client, setup_org_and_batch):
+    def _upload_csv(self, api_client, org, batch, course):
+        url = reverse('organization-batch-students-list', kwargs={'org_pk': org.id, 'batch_pk': batch.id})
+        csv_file = io.BytesIO("email,first_name\nstudent@example.com,John".encode('utf-8'))
+        csv_file.name = 'students.csv'
+        return api_client.post(url + "bulk-upload-file/", {'file': csv_file, 'course_id': course.id}, format='multipart')
+
+    def test_bulk_upload_allowed_for_batch_created_long_ago(self, api_client, setup_org_and_batch):
         org, batch, admin, course = setup_org_and_batch
-        
-        # Make the batch old (more than 2 weeks ago)
+
+        # Batch planned well in advance but still running
         from django.utils import timezone
         from datetime import timedelta
-        three_weeks_ago = timezone.now() - timedelta(weeks=3)
-        batch.created_at = three_weeks_ago
+        batch.created_at = timezone.now() - timedelta(weeks=8)
         batch.save()
-        
+
         api_client.force_authenticate(user=admin)
-        
-        url = reverse('organization-batch-students-list', kwargs={'org_pk': org.id, 'batch_pk': batch.id})
-        bulk_url = url + "bulk-upload-file/"
-        
-        csv_content = "email,first_name\nstudent@example.com,John"
-        csv_file = io.BytesIO(csv_content.encode('utf-8'))
-        csv_file.name = 'students.csv'
-        
-        response = api_client.post(bulk_url, {'file': csv_file, 'course_id': course.id}, format='multipart')
-        
+        response = self._upload_csv(api_client, org, batch, course)
+
+        assert response.data.get('error') != 'Cannot add students to an inactive or expired batch.'
+
+    def test_bulk_upload_expired_batch_rejected(self, api_client, setup_org_and_batch):
+        org, batch, admin, course = setup_org_and_batch
+
+        from django.utils import timezone
+        from datetime import timedelta
+        batch.start_date = timezone.localdate() - timedelta(days=30)
+        batch.end_date = timezone.localdate() - timedelta(days=1)
+        batch.save()
+
+        api_client.force_authenticate(user=admin)
+        response = self._upload_csv(api_client, org, batch, course)
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data['error'] == 'Assignment Date Exceeded'
+        assert response.data['error'] == 'Cannot add students to an inactive or expired batch.'
+
+    def test_bulk_upload_inactive_batch_rejected(self, api_client, setup_org_and_batch):
+        org, batch, admin, course = setup_org_and_batch
+        batch.is_active = False
+        batch.save()
+
+        api_client.force_authenticate(user=admin)
+        response = self._upload_csv(api_client, org, batch, course)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['error'] == 'Cannot add students to an inactive or expired batch.'
 
     def test_bulk_upload_validation_row_by_row_errors(self, api_client, setup_org_and_batch):
         org, batch, admin, course = setup_org_and_batch

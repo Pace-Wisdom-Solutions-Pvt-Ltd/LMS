@@ -14,6 +14,7 @@ from rest_framework import viewsets, status, filters, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import (
     extend_schema,
@@ -346,6 +347,8 @@ class LoginView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth_login"
 
     def _validate_credentials(self, email, password):
         try:
@@ -432,6 +435,8 @@ class ForgotPasswordView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth_password_reset_email"
 
     @extend_schema(
         tags=["Authentication"],
@@ -485,6 +490,8 @@ class ResetPasswordView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth_token"
 
     @extend_schema(
         tags=["Authentication"],
@@ -741,6 +748,8 @@ class AcceptInviteView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth_token"
 
     @extend_schema(
         tags=["Authentication"],

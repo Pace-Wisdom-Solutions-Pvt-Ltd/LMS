@@ -492,6 +492,16 @@ class BatchStudentViewSet(viewsets.ModelViewSet):
             return BulkAddStudentSerializer
         return BatchStudentSerializer
 
+    @staticmethod
+    def _closed_batch_response(batch):
+        """Return a 400 response if the batch can no longer accept students, else None."""
+        if not batch.is_active or batch.end_date < timezone.localdate():
+            return Response(
+                {"error": "Cannot add students to an inactive or expired batch."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return None
+
     def get_queryset(self):
         org_id = self.kwargs.get("org_pk")
         if not org_id:
@@ -525,15 +535,11 @@ class BatchStudentViewSet(viewsets.ModelViewSet):
         batch_id = self.kwargs.get("batch_pk")
         org = get_object_or_404(Organization, id=org_id)
         default_batch = get_object_or_404(Batch, id=batch_id, organization=org)
-        
-        # Validation: Prevent adding students to batches created more than 2 weeks ago
-        two_weeks_ago = timezone.now() - timedelta(weeks=2)
-        if default_batch.created_at < two_weeks_ago:
-            return Response(
-                {"error": "Assignment Date Exceeded"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+
+        closed_response = self._closed_batch_response(default_batch)
+        if closed_response is not None:
+            return closed_response
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -668,14 +674,10 @@ class BatchStudentViewSet(viewsets.ModelViewSet):
         
         org = get_object_or_404(Organization, id=org_id)
         default_batch = get_object_or_404(Batch, id=batch_id, organization=org)
-        
-        # Validation: Prevent adding students to batches created more than 2 weeks ago
-        two_weeks_ago = timezone.now() - timedelta(weeks=2)
-        if default_batch.created_at < two_weeks_ago:
-            return Response(
-                {"error": "Assignment Date Exceeded"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+
+        closed_response = self._closed_batch_response(default_batch)
+        if closed_response is not None:
+            return closed_response
 
         # 1. Validate both the file AND the course_id from the dropdown
         serializer = FileBulkUploadSerializer(data=request.data)

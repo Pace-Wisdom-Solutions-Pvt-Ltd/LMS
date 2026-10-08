@@ -1,11 +1,25 @@
 # SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from curriculum.models import StudentNodeProgress
-from gamification.models import GamificationProfile
+from gamification.models import GamificationProfile, NodeCompletionReward
 from organizations.models import OrganizationMember
+
+NODE_COMPLETION_POINTS = 10
+
+
+def _level_for_points(points):
+    if points >= 500:
+        return "Expert"
+    if points >= 250:
+        return "Intermediate"
+    if points >= 100:
+        return "Novice"
+    return None
+
 
 @receiver(post_save, sender=StudentNodeProgress)
 def update_gamification_on_completion(sender, instance, created, **kwargs):
@@ -24,18 +38,24 @@ def update_gamification_on_completion(sender, instance, created, **kwargs):
         if not member:
             return
 
-        profile, _ = GamificationProfile.objects.get_or_create(organization_member=member)
-        
-        # Award 10 points for completing a node
-        points_awarded = 10 
-        profile.total_points += points_awarded
-        
-        # Dynamic leveling logic
-        if profile.total_points >= 500:
-            profile.current_level = "Expert"
-        elif profile.total_points >= 250:
-            profile.current_level = "Intermediate"
-        elif profile.total_points >= 100:
-            profile.current_level = "Novice"
-            
-        profile.save()
+        with transaction.atomic():
+            # Award points only the first time this member completes this node.
+            # Re-saving a completed progress row must not award points again.
+            _, reward_created = NodeCompletionReward.objects.get_or_create(
+                organization_member=member,
+                node=instance.node,
+                defaults={'points': NODE_COMPLETION_POINTS}
+            )
+            if not reward_created:
+                return
+
+            profile, _ = GamificationProfile.objects.get_or_create(organization_member=member)
+            # Lock the profile row so concurrent completions do not lose updates
+            profile = GamificationProfile.objects.select_for_update().get(pk=profile.pk)
+            profile.total_points += NODE_COMPLETION_POINTS
+
+            level = _level_for_points(profile.total_points)
+            if level:
+                profile.current_level = level
+
+            profile.save()
