@@ -1,0 +1,144 @@
+<!--
+SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
+SPDX-License-Identifier: Apache-2.0
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">LMS: the open-source, multi-tenant Learning Management System</title>
+  <desc id="desc">Animated banner with drifting brand-colour glows and a typing line describing what the platform does.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1222"/>
+      <stop offset="1" stop-color="#121D38"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#BFD4FF"/>
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="60"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <clipPath id="frame"><rect width="1280" height="400" rx="24"/></clipPath>
+  </defs>
+
+  <style>
+    .blob { animation: drift 18s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+    .blob.b2 { animation-duration: 22s; animation-delay: -6s; }
+    .blob.b3 { animation-duration: 26s; animation-delay: -12s; }
+    @keyframes drift {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(60px, -30px) scale(1.15); }
+      100% { transform: translate(-40px, 25px) scale(0.95); }
+    }
+    .title { font: 800 92px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; letter-spacing: 2px; }
+    .tag   { font: 600 24px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #C9D6F2; }
+    .type  { font: 500 26px 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; fill: #7EE0C3; }
+    .prompt{ font: 700 26px 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; fill: #F0912F; }
+    .chip  { font: 600 15px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; fill: #DCE6FF; }
+    .fadein { opacity: 0; animation: fadeUp 1s ease-out forwards; }
+    .d1 { animation-delay: .2s; } .d2 { animation-delay: .5s; } .d3 { animation-delay: .8s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    /* Typing line: four phrases typed one after another (SMIL below), with a blinking cursor */
+    .caret { animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .dot { animation: twinkle 4s ease-in-out infinite; }
+    .dot.t2 { animation-delay: -1.3s; } .dot.t3 { animation-delay: -2.6s; }
+    @keyframes twinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+    @media (prefers-reduced-motion: reduce) {
+      .blob, .caret, .dot { animation: none; }
+    }
+  </style>
+
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="400" fill="url(#bg)"/>
+    <rect width="1280" height="400" fill="url(#grid)"/>
+
+    <!-- Drifting colour glows -->
+    <circle class="blob"    cx="220"  cy="120" r="170" fill="#3BBFC4" opacity="0.28" filter="url(#blur)"/>
+    <circle class="blob b2" cx="1080" cy="80"  r="190" fill="#E2507A" opacity="0.22" filter="url(#blur)"/>
+    <circle class="blob b3" cx="900"  cy="360" r="200" fill="#2E9BE0" opacity="0.25" filter="url(#blur)"/>
+    <circle class="blob b2" cx="420"  cy="380" r="150" fill="#F0912F" opacity="0.16" filter="url(#blur)"/>
+
+    <!-- Twinkling stars -->
+    <g fill="#FFFFFF">
+      <circle class="dot"    cx="560"  cy="48"  r="1.6"/>
+      <circle class="dot t2" cx="1180" cy="210" r="1.8"/>
+      <circle class="dot t3" cx="720"  cy="360" r="1.4"/>
+      <circle class="dot"    cx="1010" cy="320" r="1.6"/>
+      <circle class="dot t2" cx="470"  cy="300" r="1.3"/>
+      <circle class="dot t3" cx="1230" cy="60"  r="1.5"/>
+      <circle class="dot t2" cx="660"  cy="140" r="1.2"/>
+    </g>
+
+
+    <!-- Text block -->
+    <text class="title fadein d1" x="640" y="160" text-anchor="middle" fill="url(#titleGrad)">LMS</text>
+    <text class="tag fadein d2" x="640" y="206" text-anchor="middle">The open-source, multi-tenant Learning Management System</text>
+
+    <g class="fadein d3">
+      <text class="prompt" x="428" y="266">&#x276F;</text>
+
+      <g transform="translate(460 240)">
+        <g opacity="0">
+          <animate attributeName="opacity" values="1;0;0" keyTimes="0;0.2500;1" calcMode="discrete" dur="16s" repeatCount="indefinite"/>
+          <clipPath id="type0"><rect height="40" width="0">
+            <animate attributeName="width" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;374.4;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="0.0s" repeatCount="indefinite"/>
+          </rect></clipPath>
+          <text class="type" x="0" y="26" clip-path="url(#type0)">Build structured courses</text>
+          <rect class="caret" y="6" width="12" height="26" fill="#7EE0C3" x="0">
+            <animate attributeName="x" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;374.4;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="0.0s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+        <g opacity="0">
+          <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.2500;0.5000;1" calcMode="discrete" dur="16s" repeatCount="indefinite"/>
+          <clipPath id="type1"><rect height="40" width="0">
+            <animate attributeName="width" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;390.0;390.0;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.4375;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="4.0s" repeatCount="indefinite"/>
+          </rect></clipPath>
+          <text class="type" x="0" y="26" clip-path="url(#type1)">Enrol learners in batches</text>
+          <rect class="caret" y="6" width="12" height="26" fill="#7EE0C3" x="0">
+            <animate attributeName="x" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;390.0;390.0;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.4375;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="4.0s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+        <g opacity="0">
+          <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.5000;0.7500;1" calcMode="discrete" dur="16s" repeatCount="indefinite"/>
+          <clipPath id="type2"><rect height="40" width="0">
+            <animate attributeName="width" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;374.4;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="8.0s" repeatCount="indefinite"/>
+          </rect></clipPath>
+          <text class="type" x="0" y="26" clip-path="url(#type2)">Grade work with feedback</text>
+          <rect class="caret" y="6" width="12" height="26" fill="#7EE0C3" x="0">
+            <animate attributeName="x" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;374.4;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="8.0s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+        <g opacity="0">
+          <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.7500;1.0000;1" calcMode="discrete" dur="16s" repeatCount="indefinite"/>
+          <clipPath id="type3"><rect height="40" width="0">
+            <animate attributeName="width" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;390.0;390.0;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.4375;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="12.0s" repeatCount="indefinite"/>
+          </rect></clipPath>
+          <text class="type" x="0" y="26" clip-path="url(#type3)">Track progress end to end</text>
+          <rect class="caret" y="6" width="12" height="26" fill="#7EE0C3" x="0">
+            <animate attributeName="x" values="0.0;15.6;31.2;46.8;62.4;78.0;93.6;109.2;124.8;140.4;156.0;171.6;187.2;202.8;218.4;234.0;249.6;265.2;280.8;296.4;312.0;327.6;343.2;358.8;374.4;390.0;390.0;0;0" keyTimes="0.0000;0.0175;0.0350;0.0525;0.0700;0.0875;0.1050;0.1225;0.1400;0.1575;0.1750;0.1925;0.2100;0.2275;0.2450;0.2625;0.2800;0.2975;0.3150;0.3325;0.3500;0.3675;0.3850;0.4025;0.4200;0.4375;0.8500;0.9250;1.0000" calcMode="discrete" dur="4.0s" begin="12.0s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+      </g>
+
+      <!-- Feature chips -->
+      <g transform="translate(319 306)">
+        <rect width="150" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.07" stroke="#6CC25E" stroke-opacity="0.6"/>
+        <text class="chip" x="75" y="22" text-anchor="middle">Multi-tenant</text>
+        <rect x="164" width="150" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.07" stroke="#2E9BE0" stroke-opacity="0.6"/>
+        <text class="chip" x="239" y="22" text-anchor="middle">Web + Mobile</text>
+        <rect x="328" width="150" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.07" stroke="#E2507A" stroke-opacity="0.6"/>
+        <text class="chip" x="403" y="22" text-anchor="middle">REST API</text>
+        <rect x="492" width="150" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.07" stroke="#F0912F" stroke-opacity="0.6"/>
+        <text class="chip" x="567" y="22" text-anchor="middle">Self-hosted</text>
+      </g>
+    </g>
+  </g>
+</svg>
