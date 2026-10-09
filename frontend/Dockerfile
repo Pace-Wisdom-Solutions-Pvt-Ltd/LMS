@@ -3,7 +3,7 @@
 
 # ── Frontend: Vite + React dev server ─────────────────────────────────────────
 # Vite 7 requires Node 20.19+ or 22.12+.
-FROM node:22-alpine
+FROM node:25-alpine
 
 WORKDIR /app
 
