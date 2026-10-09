@@ -87,6 +87,7 @@ export 'package:lms/core/services/auth_token_store.dart';
 export 'package:lms/core/services/file_saver.dart';
 export 'package:lms/core/views/main_shell.dart';
 export 'package:lms/core/views/my_app.dart';
+export 'package:lms/core/widgets/app_footer.dart';
 export 'package:lms/core/widgets/app_motion.dart';
 export 'package:lms/core/widgets/app_rings.dart';
 export 'package:lms/core/widgets/app_sheet.dart';

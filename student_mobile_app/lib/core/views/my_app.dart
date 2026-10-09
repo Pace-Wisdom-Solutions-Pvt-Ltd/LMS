@@ -71,8 +71,8 @@ class _AppView extends StatelessWidget {
           supportedLocales: const <Locale>[Locale('en')],
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           // Honour the 1.3x the specs require without letting a 2x system
-          // setting destroy every layout, and pin the "No internet" bar to the
-          // bottom of every route at once.
+          // setting destroy every layout, and pin the footer and the
+          // "No internet" bar to the bottom of every route at once.
           // The [ColoredBox] is not decoration. A page transition fades the
           // outgoing and incoming routes at the same time, and for those
           // frames neither is opaque — so whatever sits behind the navigator
@@ -91,6 +91,7 @@ class _AppView extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   Expanded(child: child ?? const SizedBox.shrink()),
+                  const AppFooter(),
                   const NoInternetBar(),
                 ],
               ),

@@ -49,4 +49,17 @@ class AppEnv {
   }
 
   static bool get isConfigured => baseUrl.isNotEmpty;
+
+  /// What [AppFooter] prints, and where tapping it goes.
+  ///
+  /// Constants, not `.env` keys like [baseUrl]: both are the same in every
+  /// environment, and as keys every build or CI job that forgot to set them
+  /// would ship a footer with no notice and a link to nowhere.
+  ///
+  /// [companyCopyright] is deliberately **not** in the `.arb` either. It is a
+  /// legal attribution, identical in every locale, and nothing should be able
+  /// to translate it. This is the one place the string exists — read it from
+  /// here rather than repeating it, including in tests.
+  static const String companyCopyright = '© Pace Wisdom Solutions';
+  static const String companyWebsite = 'https://pacewisdom.com/';
 }
