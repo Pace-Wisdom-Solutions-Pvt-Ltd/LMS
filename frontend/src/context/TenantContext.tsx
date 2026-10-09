@@ -5,28 +5,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, t
 import type { TenantBranding } from '@/lib/api/tenant'
 import { getStoredOrganizations } from '@/lib/auth'
 import { getOrganizationByIdApi } from '@/lib/api/organizations'
-import { config } from '@/config'
-
-export function resolveOrgLogoUrl(rawUrl: string | null | undefined): string | null {
-  if (!rawUrl) return null
-  const trimmed = rawUrl.trim()
-  if (!trimmed) return null
-  if (
-    trimmed.startsWith('http://') ||
-    trimmed.startsWith('https://') ||
-    trimmed.startsWith('blob:') ||
-    trimmed.startsWith('data:')
-  ) {
-    return trimmed
-  }
-  const baseUrl = config.api.baseUrl || ''
-  try {
-    const origin = typeof window !== 'undefined' ? new URL(baseUrl, window.location.origin).origin : 'http://localhost'
-    return `${origin}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`
-  } catch {
-    return trimmed
-  }
-}
+import { resolveOrgLogoUrl } from '@/lib/tenantUtils'
 
 export interface TenantContextValue {
   tenant: TenantBranding | null

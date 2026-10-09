@@ -123,6 +123,7 @@ export default function CourseDetail() {
       .finally(() => setLoading(false));
 
     void fetchModules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, courseId]);
 
   const fetchModules = async () => {

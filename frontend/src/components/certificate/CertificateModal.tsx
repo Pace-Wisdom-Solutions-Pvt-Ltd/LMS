@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { Download, Printer, X } from 'lucide-react'
 import {
   type ApiCertificate,
@@ -55,7 +55,7 @@ export function CertificateModal({
     ? certificate.preview_url || getCertificatePreviewUrl(certificate.certificate_id)
     : ''
 
-  const handleDownloadPdf = async () => {
+  const handleDownloadPdf = useCallback(async () => {
     if (!certificate) return
 
     // 1. Direct download of the official backend A4 Landscape PDF.
@@ -117,7 +117,7 @@ export function CertificateModal({
         console.error('Client-side fallback PDF export failed:', err)
       }
     }
-  }
+  }, [certificate, downloadUrl])
 
   const onDownloadClick = () => {
     void handleDownloadPdf().catch((err) => {
@@ -145,7 +145,7 @@ export function CertificateModal({
         console.error('Failed to auto-download certificate:', err)
       })
     }
-  }, [open, autoDownload, certificate])
+  }, [open, autoDownload, certificate, handleDownloadPdf])
 
   if (!open || !certificate) return null
 

@@ -3,7 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { TenantProvider, useTenant, resolveOrgLogoUrl } from './TenantContext'
+import { TenantProvider, useTenant } from './TenantContext'
+import { resolveOrgLogoUrl } from '@/lib/tenantUtils'
 import * as auth from '@/lib/auth'
 import * as orgApi from '@/lib/api/organizations'
 

@@ -91,7 +91,9 @@ export default function DetailedRoadmap({
     getCourseRoadmapApi(orgId, id)
       .then((res) => {
         setData(res.modules || []);
-        if (!expandedId && res.modules?.[0]) setExpandedId(res.modules[0].id);
+        if (res.modules?.[0]) {
+          setExpandedId((prev) => prev || res.modules[0].id);
+        }
       })
       .catch((err: unknown) => {
         showToast(err instanceof Error ? err.message : "Failed to load course.", "error");
