@@ -5,6 +5,7 @@ import datetime
 from datetime import timedelta
 
 import pytest
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APIRequestFactory
@@ -19,24 +20,29 @@ User = get_user_model()
 DEFAULT_TEST_CREDENTIAL = 'p'
 
 
-def test_admin_dashboard_no_metrics_returns_404():
-    factory = APIRequestFactory()
-    user = User.objects.create_user('u@a.com', DEFAULT_TEST_CREDENTIAL)
-    org = Organization.objects.create(name='AOrg', contact_email='a@o.com')
+def _admin_client_for(org, email):
+    """Return an APIClient authenticated as an active org_admin of ``org``."""
+    user = User.objects.create_user(email, DEFAULT_TEST_CREDENTIAL)
+    role, _ = Role.objects.get_or_create(name='org_admin')
+    member = OrganizationMember.objects.create(
+        user=user, organization=org, role=role, is_active=True
+    )
+    member.roles.add(role)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
 
-    view = AdminDashboardView()
-    req = factory.get('/')
-    req.user = user
-    request = view.initialize_request(req)
-    request.user = user
-    view.request = request
-    resp = view.get(request, org.id)
+
+# Driven over HTTP via reverse() so URL resolution and permission classes apply.
+def test_admin_dashboard_no_metrics_returns_404():
+    org = Organization.objects.create(name='AOrg', contact_email='a@o.com')
+    client = _admin_client_for(org, 'u@a.com')
+
+    resp = client.get(reverse('admin_dashboard', args=[org.id]))
     assert resp.status_code == 404
 
 
 def test_admin_dashboard_with_metrics_returns_data():
-    factory = APIRequestFactory()
-    user = User.objects.create_user('u2@a.com', DEFAULT_TEST_CREDENTIAL)
     org = Organization.objects.create(name='AOrg2', contact_email='a2@o.com')
     DailyOrgMetrics.objects.create(
         organization=org,
@@ -46,16 +52,11 @@ def test_admin_dashboard_with_metrics_returns_data():
         avg_course_completion_rate=33.3,
         total_certificates_issued=1,
     )
+    client = _admin_client_for(org, 'u2@a.com')
 
-    view = AdminDashboardView()
-    req = factory.get('/')
-    req.user = user
-    request = view.initialize_request(req)
-    request.user = user
-    view.request = request
-    resp = view.get(request, org.id)
+    resp = client.get(reverse('admin_dashboard', args=[org.id]))
     assert resp.status_code == 200
-    assert 'total_active_users' in resp.data
+    assert resp.data['total_active_users'] == 5
 
 
 def test_teacher_dashboard_no_metrics_returns_404():
