@@ -3,7 +3,7 @@
 
 # Backend API image only. The frontend (frontend/) is a separate Vite SPA
 # deployed independently — see frontend/README.md.
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
