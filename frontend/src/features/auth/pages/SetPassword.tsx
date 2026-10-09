@@ -62,7 +62,7 @@ export default function SetPassword() {
   // No token in URL â€“ show invalid/expired link message
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-full flex items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-200 text-center">
           <div className="flex justify-center mb-4">
             <img src={logo} alt="Logo" className="h-10 object-contain" />
@@ -80,7 +80,7 @@ export default function SetPassword() {
   // Success state after setting password
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-full flex items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-200 text-center">
           <div className="flex justify-center mb-4">
             <img src={logo} alt="Logo" className="h-10 object-contain" />
@@ -101,7 +101,7 @@ export default function SetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-full flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
         <div className="flex justify-center mb-6">
           <img src={logo} alt="Logo" className="h-10 object-contain" />

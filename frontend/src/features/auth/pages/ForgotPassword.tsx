@@ -38,7 +38,7 @@ export default function ForgotPassword() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-full flex items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-200 text-center">
           <h1 className="text-2xl font-bold text-slate-800 mb-4">Check your email</h1>
           <p className="text-slate-600 mb-6">
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-full flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
         <h1 className="text-2xl font-bold text-slate-800 text-center mb-6">Forgot password</h1>
         <p className="text-slate-600 text-center mb-6">

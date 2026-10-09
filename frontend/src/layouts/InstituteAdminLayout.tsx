@@ -13,7 +13,7 @@ export default function InstituteAdminLayout() {
   const title = getInstituteAdminTitle(pathname)
 
   return (
-    <div className="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 relative">
+    <div className="h-full overflow-hidden flex bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 relative">
       {!collapsed && (
         <div
           aria-hidden
