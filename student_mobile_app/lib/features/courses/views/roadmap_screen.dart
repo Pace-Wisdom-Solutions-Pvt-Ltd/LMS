@@ -140,6 +140,12 @@ class _RoadmapViewState extends State<_RoadmapView> with RouteAware {
                       ...staggered(<Widget>[
                         _CourseHeader(course: course),
                         const SizedBox(height: AppSpace.sectionGap),
+                        // Above the modules, not below them: a learner who
+                        // finished the course opens this screen for the
+                        // certificate, and burying it under every module they
+                        // have already completed makes them hunt for it.
+                        if (course.isCompleted)
+                          _CertificateSection(course: course),
                         for (int i = 0; i < course.modules.length; i++)
                           _ModuleSection(
                             module: course.modules[i],
@@ -215,6 +221,77 @@ class _CourseHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// What a finished course has to say about its certificate.
+///
+/// Two states, and the course being complete does not settle which: the
+/// lessons can all be done while a task submission still waits on a trainer,
+/// and the server sends `certificate: null` for the whole of that window. So
+/// an issued one gets the card, and a pending one gets a sentence naming what
+/// it is waiting for — rather than a blank space that reads as a course which
+/// earned nothing.
+///
+/// The card is [CertificateCard.forCourse]: the one the Progress tab lists,
+/// minus the course name, the date and the reference. This screen *is* that
+/// course, so naming it again says nothing. View, Download and Share behave
+/// identically in both places because it is the same widget.
+class _CertificateSection extends StatelessWidget {
+  const _CertificateSection({required this.course});
+
+  final Roadmap course;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpace.sectionGap),
+    child: course.hasCertificate
+        ? CertificateCard.forCourse(
+            certificate: course.certificate!,
+            downloads: context.read<RoadmapViewModel>(),
+          )
+        : const _CertificatePending(),
+  );
+}
+
+/// Complete, and the certificate is not here yet.
+class _CertificatePending extends StatelessWidget {
+  const _CertificatePending();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpace.md),
+    decoration: BoxDecoration(
+      color: context.colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          Icons.hourglass_empty_rounded,
+          size: 20,
+          color: context.brand.muted,
+        ),
+        const SizedBox(width: AppSpace.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                context.l10n.certificatePendingTitle,
+                style: context.text.titleMedium?.copyWith(fontSize: fs(15)),
+              ),
+              const SizedBox(height: AppSpace.xxs),
+              Text(
+                context.l10n.certificatePendingBody,
+                style: context.text.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// `MODULE n · m LESSONS`, the module title, then its rows.
@@ -900,6 +977,30 @@ class _MaterialBody extends StatelessWidget {
   }
 }
 
+/// Says the node is finished: a tick and the word, nothing to tap.
+///
+/// All three bodies end here, and they arrive differently. Material has
+/// [_CompleteButton], which *becomes* this once the node is complete — the
+/// thing it offered has been done. Quiz and task keep their button, because
+/// there is still a result or a submission to go and look at, so this sits
+/// under it rather than replacing it. One widget for the three, so they cannot
+/// drift into saying the same thing in three slightly different ways.
+class _NodeDone extends StatelessWidget {
+  const _NodeDone();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: <Widget>[
+      Icon(Icons.check_circle_rounded, size: 18, color: context.brand.success),
+      const SizedBox(width: AppSpace.sm),
+      Text(
+        context.l10n.nodeDone,
+        style: context.text.labelLarge?.copyWith(color: context.brand.success),
+      ),
+    ],
+  );
+}
+
 class _CompleteButton extends StatelessWidget {
   const _CompleteButton({required this.node});
 
@@ -909,24 +1010,7 @@ class _CompleteButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final RoadmapViewModel vm = context.watch<RoadmapViewModel>();
 
-    if (node.isCompleted) {
-      return Row(
-        children: <Widget>[
-          Icon(
-            Icons.check_circle_rounded,
-            size: 18,
-            color: context.brand.success,
-          ),
-          const SizedBox(width: AppSpace.sm),
-          Text(
-            context.l10n.nodeDone,
-            style: context.text.labelLarge?.copyWith(
-              color: context.brand.success,
-            ),
-          ),
-        ],
-      );
-    }
+    if (node.isCompleted) return const _NodeDone();
 
     return AppButton(
       label: context.l10n.markCompleteAction,
@@ -1008,6 +1092,10 @@ class _QuizStart extends StatelessWidget {
           icon: Icons.play_arrow_rounded,
           onPressed: () => _open(context, canRetake: canRetake),
         ),
+        if (node.isCompleted) ...<Widget>[
+          const SizedBox(height: AppSpace.md),
+          const _NodeDone(),
+        ],
       ],
     );
   }
@@ -1038,10 +1126,11 @@ class _QuizStart extends StatelessWidget {
 
 /// A task: opened on its own screen, which fetches everything it needs itself.
 ///
-/// The button's wording is the only thing the roadmap contributes — a
-/// completed node has a submission to look at, an incomplete one has a form to
-/// fill. Nothing is passed: the task screen loads the node and the attempts
-/// together and decides for itself which it is showing.
+/// The roadmap contributes the button's wording and, when the node is done,
+/// [_NodeDone] under it — a completed node has a submission to look at, an
+/// incomplete one has a form to fill. Nothing is passed: the task screen loads
+/// the node and the attempts together and decides for itself which it is
+/// showing.
 ///
 /// The roadmap reloads when this closes — submitting happened out of its sight
 /// — from `_RoadmapViewState.didPopNext`, not from the push.
@@ -1051,12 +1140,21 @@ class _TaskStart extends StatelessWidget {
   final RoadmapNode node;
 
   @override
-  Widget build(BuildContext context) => AppButton(
-    label: node.isCompleted
-        ? context.l10n.viewTaskPage
-        : context.l10n.openTaskPage,
-    icon: Icons.assignment_outlined,
-    onPressed: () => _open(context),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      AppButton(
+        label: node.isCompleted
+            ? context.l10n.viewTaskPage
+            : context.l10n.openTaskPage,
+        icon: Icons.assignment_outlined,
+        onPressed: () => _open(context),
+      ),
+      if (node.isCompleted) ...<Widget>[
+        const SizedBox(height: AppSpace.md),
+        const _NodeDone(),
+      ],
+    ],
   );
 
   void _open(BuildContext context) {

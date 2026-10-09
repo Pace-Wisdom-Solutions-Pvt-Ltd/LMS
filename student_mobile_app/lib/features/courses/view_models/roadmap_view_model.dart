@@ -12,19 +12,29 @@ import 'package:lms/utils/app_exports.dart';
 /// and keeps it, so collapsing and reopening the same row costs nothing. Only
 /// one row is open at a time — two open players competing for audio is not a
 /// state worth supporting.
-class RoadmapViewModel extends BaseProvider {
+///
+/// It also downloads the course's certificate, through the same
+/// [CertificateDownloads] the Progress tab uses, so the card behaves
+/// identically in both places.
+class RoadmapViewModel extends BaseProvider with CertificateDownloads {
   RoadmapViewModel({
     required this.orgId,
     required this.courseId,
     CoursesRepository? repository,
     LessonRepository? lessons,
+    CertificateRepository? certificates,
   }) : _repository = repository ?? const CoursesRepository(),
-       _lessons = lessons ?? const LessonRepository();
+       _lessons = lessons ?? const LessonRepository(),
+       _certificates = certificates ?? const CertificateRepository();
 
   final int orgId;
   final int courseId;
   final CoursesRepository _repository;
   final LessonRepository _lessons;
+  final CertificateRepository _certificates;
+
+  @override
+  CertificateRepository get certificateRepository => _certificates;
 
   Roadmap? _roadmap;
   Roadmap? get roadmap => _roadmap;

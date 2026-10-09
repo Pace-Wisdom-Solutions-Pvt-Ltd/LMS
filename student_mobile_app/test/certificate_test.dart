@@ -3,11 +3,14 @@
 
 // The Certificate model.
 //
-// `GET …/certificates/` has a captured example, but it is an **empty page** —
-// so unlike every other model here, this one is written against the OpenAPI
-// schema and has never been seen against real data. These tests pin what the
-// schema promises and, more importantly, what happens when it does not
-// deliver.
+// `GET …/certificates/` nests the course now — `{id, title, description}` —
+// where it used to send a bare id beside a flat `course_name`. Both shapes are
+// read, so a server on either side of that change still lists something.
+//
+// The row also carries an absolute `download_url`. It is never followed: the
+// server builds it from its own hostname and sends `https://localhost:8000/…`,
+// which no device can reach. The download is addressed by `certificate_id`
+// against the app's own base URL.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lms/utils/app_exports.dart';
@@ -87,5 +90,73 @@ void main() {
     expect(c.certificateType, isEmpty);
     expect(c.downloadUrl, isEmpty);
     expect(c.issuedAt, isNull);
+  });
+
+  group('the nested course shape', () {
+    /// A row exactly as the endpoint sends it now.
+    Map<String, dynamic> row() => <String, dynamic>{
+      'id': 1,
+      'certificate_id': 'CERT-C-1-DEEFDA1C',
+      'certificate_type': 'Course',
+      'issued_at': '2026-10-08T08:37:02.904648Z',
+      'student': <String, dynamic>{
+        'id': 'ae5af8a1-5534-49ea-b227-e1cc4e54a6aa',
+        'email': 'leelanjans828@gmail.com',
+        'full_name': 'Leelanjan S',
+      },
+      'course': <String, dynamic>{
+        'id': 1,
+        'title': 'POSH Training',
+        'description': 'POSH Training',
+      },
+      'organization': <String, dynamic>{'id': 1, 'name': 'wisdom pace'},
+      'template': null,
+      'html_content': '<!DOCTYPE html><html lang="en"><head>…',
+      'download_url':
+          'https://localhost:8000/api/certificates/CERT-C-1-DEEFDA1C/download/',
+      'preview_url':
+          'https://localhost:8000/api/certificates/CERT-C-1-DEEFDA1C/html/',
+    };
+
+    test('the course comes out of the object, not a flat field', () {
+      final Certificate c = Certificate.fromJson(row());
+
+      expect(c.id, 1);
+      expect(c.courseId, 1);
+      expect(c.courseName, 'POSH Training');
+      expect(c.certificateId, 'CERT-C-1-DEEFDA1C');
+      expect(c.certificateType, 'Course');
+      expect(c.issuedAt?.toUtc().year, 2026);
+    });
+
+    test('the card title falls back to the course name', () {
+      // `certificate_title` is gone from the payload, and the card has to
+      // print something.
+      final Certificate c = Certificate.fromJson(row());
+      expect(c.title, 'POSH Training');
+    });
+
+    test('the download is addressed by reference, not by download_url', () {
+      final Certificate c = Certificate.fromJson(row());
+
+      expect(
+        ApiEndPoints.downloadCertificate(c.certificateId),
+        '/api/certificates/CERT-C-1-DEEFDA1C/download/',
+      );
+      expect(
+        c.downloadUrl,
+        contains('localhost:8000'),
+        reason: 'carried, and exactly why it is not followed',
+      );
+    });
+
+    test('a course object with no title leaves the name empty', () {
+      final Map<String, dynamic> json = row()
+        ..['course'] = <String, dynamic>{'id': 4};
+
+      final Certificate c = Certificate.fromJson(json);
+      expect(c.courseId, 4);
+      expect(c.courseName, isEmpty);
+    });
   });
 }

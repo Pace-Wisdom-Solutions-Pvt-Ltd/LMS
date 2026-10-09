@@ -13,6 +13,15 @@ class Roadmap {
   final String title;
   final String description;
   final bool isCompleted;
+
+  /// The certificate this course earned, once there is one.
+  ///
+  /// **Null until every node is complete and every task has been marked by a
+  /// trainer**, which is why it cannot be inferred from [isCompleted] — the
+  /// lessons can all be finished while a submission is still unmarked. Shown
+  /// only when both agree; see [hasCertificate].
+  final Certificate? certificate;
+
   final List<RoadmapModule> modules;
 
   const Roadmap({
@@ -20,8 +29,17 @@ class Roadmap {
     required this.title,
     this.description = '',
     this.isCompleted = false,
+    this.certificate,
     this.modules = const <RoadmapModule>[],
   });
+
+  /// Whether the roadmap has a certificate to offer.
+  bool get hasCertificate => isCompleted && certificate != null;
+
+  /// Finished, but nothing issued yet — the course is done and a trainer still
+  /// has submissions to review. Worth saying so: an empty space where the
+  /// certificate belongs reads as a course that earned nothing.
+  bool get awaitsCertificate => isCompleted && certificate == null;
 
   List<RoadmapNode> get allNodes =>
       modules.expand((RoadmapModule m) => m.nodes).toList();
@@ -68,6 +86,13 @@ class Roadmap {
     title: (json['title'] ?? '').toString(),
     description: (json['description'] ?? '').toString(),
     isCompleted: json['is_completed'] == true,
+    certificate: json['certificate'] is Map<dynamic, dynamic>
+        ? Certificate.fromJson(
+            Map<String, dynamic>.from(
+              json['certificate'] as Map<dynamic, dynamic>,
+            ),
+          )
+        : null,
     modules: (json['modules'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<dynamic, dynamic>>()
         .map(

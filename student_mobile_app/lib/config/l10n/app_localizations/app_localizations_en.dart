@@ -602,8 +602,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get view => 'View';
 
   @override
+  String get courseCertificateTitle => 'Your certificate';
+
+  @override
+  String get courseCertificateBody => 'You have completed this course.';
+
+  @override
+  String get certificatePendingTitle => 'Certificate on the way';
+
+  @override
+  String get certificatePendingBody =>
+      'It will appear here once every lesson is complete and your trainer has reviewed each submission.';
+
+  @override
   String get certificateDownloadFailed =>
       'Could not download that certificate.';
+
+  @override
+  String get certificateOpenFailed => 'Could not open that certificate.';
+
+  @override
+  String get certificateShareFailed => 'Could not share that certificate.';
 
   @override
   String get reopenFromCourseTitle => 'Open this from the course';

@@ -26,6 +26,17 @@ String formatDateTime(DateTime value) =>
     '${DateFormat.MMMd().format(value.toLocal())}, '
     '${DateFormat.Hm().format(value.toLocal())}';
 
+/// `1791556205000` — milliseconds since the epoch.
+///
+/// For a downloaded file's name, so two downloads of the same certificate do
+/// not land as the same name. Digits only, which is the point: every character
+/// survives `FileSaver`'s file-name scrub, nothing has to be sliced off a
+/// formatted string, and the name keeps the single dot before `.pdf`.
+///
+/// No `toLocal()`: the epoch is the same instant everywhere, so a timezone
+/// cannot change it. It is not meant to be read as a date.
+String formatFileStamp(DateTime value) => '${value.millisecondsSinceEpoch}';
+
 /// `09:59` — a countdown. Tabular figures keep it from jittering; pair with
 /// `tabular(...)` or [appMono] at the call site.
 String formatCountdown(Duration d) {

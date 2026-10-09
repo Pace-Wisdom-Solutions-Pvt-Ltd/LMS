@@ -1176,11 +1176,47 @@ abstract class AppLocalizations {
   /// **'View'**
   String get view;
 
+  /// No description provided for @courseCertificateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your certificate'**
+  String get courseCertificateTitle;
+
+  /// No description provided for @courseCertificateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have completed this course.'**
+  String get courseCertificateBody;
+
+  /// No description provided for @certificatePendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate on the way'**
+  String get certificatePendingTitle;
+
+  /// No description provided for @certificatePendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will appear here once every lesson is complete and your trainer has reviewed each submission.'**
+  String get certificatePendingBody;
+
   /// No description provided for @certificateDownloadFailed.
   ///
   /// In en, this message translates to:
   /// **'Could not download that certificate.'**
   String get certificateDownloadFailed;
+
+  /// No description provided for @certificateOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open that certificate.'**
+  String get certificateOpenFailed;
+
+  /// No description provided for @certificateShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not share that certificate.'**
+  String get certificateShareFailed;
 
   /// No description provided for @reopenFromCourseTitle.
   ///
