@@ -60,8 +60,17 @@ abstract final class ApiEndPoints {
   // ── Certificates ────────────────────────────────────────────────────────
   static String certificates(int orgId) =>
       '$_api/organizations/$orgId/certificates/';
-  static String downloadCertificate(int orgId, int certificateId) =>
-      '$_api/organizations/$orgId/certificates/$certificateId/download/';
+
+  /// Takes the **printed reference** (`CERT-C-1-DEEFDA1C`), not the integer
+  /// id, and is not scoped to an organization.
+  ///
+  /// The list response carries an absolute `download_url` for the same route.
+  /// It is not used: the server builds it from its own idea of its hostname
+  /// and sends `https://localhost:8000/…`, which is nothing a device can
+  /// reach. Building the path here puts it on [AppEnv.baseUrl] like every
+  /// other call.
+  static String downloadCertificate(String certificateId) =>
+      '$_api/certificates/$certificateId/download/';
 
   /// **How a certificate comes into existence.** Nothing issues one on the
   /// learner's behalf: this call checks the course and creates it (201), and

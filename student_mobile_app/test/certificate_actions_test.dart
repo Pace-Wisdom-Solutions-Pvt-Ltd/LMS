@@ -18,7 +18,7 @@ import 'support/fake_api.dart';
 
 /// A repository that reports a download part-way through and then stops,
 /// holding the view model inside the window the ring is about.
-class _StalledDownload extends ProgressRepository {
+class _StalledDownload extends CertificateRepository {
   _StalledDownload({required this.received, required this.total});
 
   final int received;
@@ -26,9 +26,8 @@ class _StalledDownload extends ProgressRepository {
   final Completer<ApiResponse> _never = Completer<ApiResponse>();
 
   @override
-  Future<ApiResponse> downloadCertificate(
-    int orgId,
-    int certificateId, {
+  Future<ApiResponse> download(
+    String certificateId, {
     ProgressCallback? onReceiveProgress,
   }) {
     onReceiveProgress?.call(received, total);
@@ -69,10 +68,13 @@ void main() {
   }) => <String, dynamic>{
     'id': id,
     'certificate_id': 'CERT-C-$id-EC645BC6',
-    'certificate_title': title,
     'certificate_type': type,
-    'course_name': title,
+    'course': <String, dynamic>{'id': 1, 'title': title, 'description': title},
     'issued_at': '2026-08-31T10:00:00Z',
+    // Absolute and pointing at the server's own idea of its host — carried,
+    // never followed.
+    'download_url':
+        'https://localhost:8000/api/certificates/CERT-C-$id-EC645BC6/download/',
   };
 
   /// Pumps the real screen over canned responses.
@@ -85,7 +87,7 @@ void main() {
   Future<void> pumpProgress(
     WidgetTester tester, {
     required List<Map<String, dynamic>> certificates,
-    ProgressRepository? repository,
+    CertificateRepository? downloads,
   }) async {
     api.on(
       ApiEndPoints.myProgress(orgId),
@@ -148,7 +150,7 @@ void main() {
           providers: <SingleChildWidget>[
             ChangeNotifierProvider<SessionProvider>.value(value: session),
             ChangeNotifierProvider<ProgressViewModel>(
-              create: (_) => ProgressViewModel(repository: repository),
+              create: (_) => ProgressViewModel(certificates: downloads),
             ),
           ],
           child: MaterialApp(
@@ -224,11 +226,11 @@ void main() {
 
     test('is the real fraction of the bytes received', () async {
       final ProgressViewModel vm = ProgressViewModel(
-        repository: _StalledDownload(received: 512, total: 2048),
+        certificates: _StalledDownload(received: 512, total: 2048),
       );
       addTearDown(vm.dispose);
 
-      unawaited(vm.downloadCertificate(orgId, certificate));
+      unawaited(vm.downloadCertificate(certificate));
       await Future<void>.delayed(Duration.zero);
 
       expect(vm.isDownloading(5), isTrue);
@@ -239,11 +241,11 @@ void main() {
       // Dio reports `total: -1` without a `Content-Length`, and an invented
       // percentage that sticks is worse than an honest spinner.
       final ProgressViewModel vm = ProgressViewModel(
-        repository: _StalledDownload(received: 512, total: -1),
+        certificates: _StalledDownload(received: 512, total: -1),
       );
       addTearDown(vm.dispose);
 
-      unawaited(vm.downloadCertificate(orgId, certificate));
+      unawaited(vm.downloadCertificate(certificate));
       await Future<void>.delayed(Duration.zero);
 
       expect(vm.isDownloading(5), isTrue);
@@ -259,7 +261,7 @@ void main() {
       certificates: <Map<String, dynamic>>[
         certificate(id: 5, type: 'COURSE', title: 'Python Fundamentals'),
       ],
-      repository: _StalledDownload(received: 512, total: 2048),
+      downloads: _StalledDownload(received: 512, total: 2048),
     );
 
     final AppLocalizations l10n = await AppLocalizations.delegate.load(
@@ -309,7 +311,7 @@ void main() {
 
     // Held open, so the test sits inside the window it is about.
     api.on(
-      ApiEndPoints.downloadCertificate(orgId, 5),
+      ApiEndPoints.downloadCertificate('CERT-C-5-EC645BC6'),
       status: 200,
       body: <String, dynamic>{},
       delay: const Duration(seconds: 5),
@@ -356,6 +358,68 @@ void main() {
       isTrue,
       reason: 'and none of them can be tapped',
     );
+  });
+
+  group('a failed fetch speaks for the action that asked, and only it', () {
+    /// Serves the download route as a failure, whichever action reaches it.
+    void refuseDownload() => api.on(
+      ApiEndPoints.downloadCertificate('CERT-C-5-EC645BC6'),
+      status: 500,
+      body: <String, dynamic>{'detail': 'nope'},
+    );
+
+    Future<AppLocalizations> openCard(WidgetTester tester) async {
+      refuseDownload();
+      await pumpProgress(
+        tester,
+        certificates: <Map<String, dynamic>>[
+          certificate(id: 5, type: 'COURSE', title: 'Python Fundamentals'),
+        ],
+      );
+      return AppLocalizations.delegate.load(const Locale('en'));
+    }
+
+    Future<void> tap(WidgetTester tester, String label) async {
+      await tester.runAsync(() async {
+        await tester.tap(find.byTooltip(label));
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
+      });
+    }
+
+    testWidgets('Download says so', (WidgetTester tester) async {
+      final AppLocalizations l10n = await openCard(tester);
+
+      await tap(tester, l10n.download);
+
+      expect(find.text(l10n.certificateDownloadFailed), findsOneWidget);
+      expect(find.text(l10n.certificateOpenFailed), findsNothing);
+    });
+
+    testWidgets('View says it could not open it', (WidgetTester tester) async {
+      final AppLocalizations l10n = await openCard(tester);
+
+      await tap(tester, l10n.view);
+
+      expect(find.text(l10n.certificateOpenFailed), findsOneWidget);
+      expect(
+        find.text(l10n.certificateDownloadFailed),
+        findsNothing,
+        reason: 'naming an action the learner did not take',
+      );
+    });
+
+    testWidgets('Share says it could not share it', (
+      WidgetTester tester,
+    ) async {
+      final AppLocalizations l10n = await openCard(tester);
+
+      await tap(tester, l10n.share);
+
+      expect(find.text(l10n.certificateShareFailed), findsOneWidget);
+      expect(find.text(l10n.certificateDownloadFailed), findsNothing);
+    });
   });
 
   testWidgets('every certificate the endpoint returns is listed', (

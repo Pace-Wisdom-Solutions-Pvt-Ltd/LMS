@@ -87,12 +87,17 @@ class CourseProgressDetail {
       );
 }
 
-/// One row of `GET …/certificates/` (a DRF page).
+/// One row of `GET …/certificates/`.
 ///
-/// The captured example is an empty page, so this is written against the
-/// OpenAPI `Certificate` schema: `certificate_title` is the display name,
-/// `certificate_id` is the printed reference (`CERT-C-5-EC645BC6`), and `id`
-/// is the integer the download URL takes.
+/// `certificate_id` is the printed reference (`CERT-C-1-DEEFDA1C`) **and what
+/// the download route takes**; `id` is the integer, used here only to key the
+/// per-card download state.
+///
+/// `course` arrives as an object — `{id, title, description}` — and the flat
+/// `course_name` / `certificate_title` it replaced are gone. Both shapes are
+/// read so a server on either side of that change still lists something.
+/// `student`, `organization`, `template`, `html_content` and `preview_url`
+/// also ride along; nothing here needs them yet.
 class Certificate {
   final int id;
 
@@ -112,9 +117,12 @@ class Certificate {
   /// something needs to tell them apart.
   final String certificateType;
 
-  /// The path the API offers for the file. The download goes through
-  /// `ApiEndPoints.downloadCertificate(orgId, id)` instead, which is the
-  /// documented route and needs no parsing of a relative path.
+  /// What the API offers for the file, kept for reference only.
+  ///
+  /// **Not used to download.** It is absolute and built from the server's own
+  /// hostname, so it arrives as `https://localhost:8000/…`; the app asks
+  /// [ApiEndPoints.downloadCertificate] for the same route against its own
+  /// base URL instead.
   final String downloadUrl;
 
   final DateTime? issuedAt;
@@ -130,14 +138,28 @@ class Certificate {
     this.issuedAt,
   });
 
-  factory Certificate.fromJson(Map<String, dynamic> json) => Certificate(
-    id: int.tryParse('${json['id']}') ?? -1,
-    courseId: int.tryParse('${json['course']}'),
-    courseName: (json['course_name'] ?? '').toString(),
-    certificateId: (json['certificate_id'] ?? '').toString(),
-    title: (json['certificate_title'] ?? '').toString(),
-    certificateType: (json['certificate_type'] ?? '').toString(),
-    downloadUrl: (json['download_url'] ?? '').toString(),
-    issuedAt: DateTime.tryParse('${json['issued_at']}'),
-  );
+  factory Certificate.fromJson(Map<String, dynamic> json) {
+    // `course` is an object now and was a bare id before.
+    final Object? course = json['course'];
+    final Map<String, dynamic> courseMap = course is Map<dynamic, dynamic>
+        ? Map<String, dynamic>.from(course)
+        : const <String, dynamic>{};
+
+    final String courseTitle = (courseMap['title'] ?? json['course_name'] ?? '')
+        .toString()
+        .trim();
+
+    return Certificate(
+      id: int.tryParse('${json['id']}') ?? -1,
+      courseId: int.tryParse('${courseMap['id'] ?? course}'),
+      courseName: courseTitle,
+      certificateId: (json['certificate_id'] ?? '').toString(),
+      // The title the card prints is the course's; `certificate_title` is
+      // what the flat shape called it.
+      title: (json['certificate_title'] ?? courseTitle).toString(),
+      certificateType: (json['certificate_type'] ?? '').toString(),
+      downloadUrl: (json['download_url'] ?? '').toString(),
+      issuedAt: DateTime.tryParse('${json['issued_at']}'),
+    );
+  }
 }

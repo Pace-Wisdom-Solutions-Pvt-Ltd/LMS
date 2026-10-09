@@ -145,7 +145,6 @@ class _TabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final BrandColors brand = context.brand;
-    final double bottomInset = context.viewPadding.bottom;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -157,8 +156,11 @@ class _TabBar extends StatelessWidget {
           top: AppSpace.sm,
           left: AppSpace.sm,
           right: AppSpace.sm,
-          // 26px in the design, on a device without a home indicator.
-          bottom: bottomInset > 0 ? bottomInset : AppSpace.sectionGap,
+          // 26px in the design, on a device without a home indicator — and
+          // now on every device, because [AppFooter] sits below this bar and
+          // pays the home indicator's inset. Paying it here as well left an
+          // empty band between the tabs and the footer.
+          bottom: AppSpace.lg,
         ),
         // No fixed height: the row is as tall as an icon over its label, so it
         // grows with the text scale instead of clipping it. 46px was the
