@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { TenantProvider } from '@/context/TenantContext'
 import ToastContainer from '@/components/ui/Toast'
 import ThemeManager from '@/components/ThemeManager'
+import Footer from '@/components/layout/Footer'
 import ProtectedRoute from '@/features/auth/ProtectedRoute'
 import Login from '@/features/auth/pages/Login'
 import ForgotPassword from '@/features/auth/pages/ForgotPassword'
@@ -38,6 +39,8 @@ function App() {
       <ToastContainer />
       <BrowserRouter>
       <ThemeManager />
+      <div className="h-screen flex flex-col">
+      <div className="flex-1 min-h-0 overflow-auto">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -121,6 +124,9 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </div>
+      <Footer />
+      </div>
     </BrowserRouter>
     </TenantProvider>
   )

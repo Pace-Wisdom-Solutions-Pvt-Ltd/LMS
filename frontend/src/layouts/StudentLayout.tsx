@@ -9,7 +9,7 @@ import StudentHeader from '@/features/student/layout/StudentHeader'
 export default function StudentLayout() {
   const [collapsed, setCollapsed] = useState(false)
   return (
-    <div className="h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 relative">
+    <div className="h-full overflow-hidden flex bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 relative">
       {!collapsed && (
         <div
           aria-hidden
