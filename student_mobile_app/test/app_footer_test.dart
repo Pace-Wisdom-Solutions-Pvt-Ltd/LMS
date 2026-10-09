@@ -4,10 +4,11 @@
 // The app-wide footer.
 //
 // Mounted in `MaterialApp.builder`, so it is on every route without a screen
-// opting in — the same arrangement as the "No internet" bar, which sits below
-// it. What is pinned here is the part that is not a theme decision: the
-// colours are fixed in both themes, and the home indicator's inset is paid
-// once rather than twice when the red bar is also up.
+// opting in. What is pinned here is the part that is not a theme decision: the
+// colours are fixed in both themes, and the "No internet" bar is *overlaid* on
+// the footer rather than stacked beneath it — in a Column it took layout
+// height, so a connection dropping shoved the footer and the whole route
+// above it up and down.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lms/utils/app_exports.dart';
@@ -28,7 +29,7 @@ void main() {
   tearDownAll(() => InternetProvider.pollingEnabled = true);
 
   /// Pumps the footer in the arrangement `MaterialApp.builder` gives it: not
-  /// inside a route's Scaffold, with the red bar underneath.
+  /// inside a route's Scaffold, with the red bar overlaid at the bottom.
   Future<AppLocalizations> pumpFooter(
     WidgetTester tester, {
     required ThemeData theme,
@@ -50,11 +51,21 @@ void main() {
             builder: (BuildContext context) => MediaQuery(
               data: MediaQuery.of(context)
                   .copyWith(viewPadding: inset, padding: inset),
-              child: const Column(
+              child: const Stack(
+                fit: StackFit.expand,
                 children: <Widget>[
-                  Expanded(child: SizedBox.shrink()),
-                  AppFooter(),
-                  NoInternetBar(),
+                  Column(
+                    children: <Widget>[
+                      Expanded(child: SizedBox.shrink()),
+                      AppFooter(),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: NoInternetBar(),
+                  ),
                 ],
               ),
             ),
@@ -119,27 +130,56 @@ void main() {
     expect(AppEnv.companyWebsite, 'https://pacewisdom.com/');
   });
 
-  group('the home indicator is paid for once', () {
+  group('the bar is overlaid, not stacked beneath', () {
     const EdgeInsets inset = EdgeInsets.only(bottom: 34);
 
-    testWidgets('online, the footer is bottom-most and pays it', (
+    testWidgets('the footer pays the home indicator inset, online or not', (
       WidgetTester tester,
     ) async {
-      await pumpFooter(tester, theme: AppTheme.light());
-      final double bare = tester.getSize(find.byType(AppFooter)).height;
+      // It is the last thing in the column either way now, so it owes the
+      // inset either way. Nothing else below it can pay it.
+      for (final bool online in <bool>[true, false]) {
+        await pumpFooter(tester, theme: AppTheme.light(), online: online);
+        final double bare = tester.getSize(find.byType(AppFooter)).height;
 
-      await pumpFooter(tester, theme: AppTheme.light(), inset: inset);
+        await pumpFooter(
+          tester,
+          theme: AppTheme.light(),
+          online: online,
+          inset: inset,
+        );
 
-      expect(tester.getSize(find.byType(AppFooter)).height, bare + 34);
+        expect(
+          tester.getSize(find.byType(AppFooter)).height,
+          bare + 34,
+          reason: 'online: $online',
+        );
+      }
     });
 
-    testWidgets('offline, the red bar below it pays instead', (
+    testWidgets('losing the connection does not move the footer', (
       WidgetTester tester,
     ) async {
-      // Both paying left a 34px band of black between the footer and the bar.
-      await pumpFooter(tester, theme: AppTheme.light(), online: false);
-      final double bare = tester.getSize(find.byType(AppFooter)).height;
+      // The whole reason for the Stack. In a Column the bar's height came out
+      // of the layout, so the footer — and every pixel of the route above it
+      // — jumped up the moment the connection dropped and back down when it
+      // returned.
+      await pumpFooter(tester, theme: AppTheme.light(), inset: inset);
+      final Rect online = tester.getRect(find.byType(AppFooter));
 
+      await pumpFooter(
+        tester,
+        theme: AppTheme.light(),
+        online: false,
+        inset: inset,
+      );
+
+      expect(tester.getRect(find.byType(AppFooter)), online);
+    });
+
+    testWidgets('offline, the bar sits over the footer at the bottom', (
+      WidgetTester tester,
+    ) async {
       final AppLocalizations l10n = await pumpFooter(
         tester,
         theme: AppTheme.light(),
@@ -148,15 +188,15 @@ void main() {
       );
 
       expect(find.text(l10n.noInternet), findsOneWidget);
+
+      final Rect bar = tester.getRect(find.byType(NoInternetBar));
+      final Rect footer = tester.getRect(find.byType(AppFooter));
+
+      expect(bar.bottom, footer.bottom, reason: 'both reach the screen edge');
       expect(
-        tester.getSize(find.byType(AppFooter)).height,
-        bare,
-        reason: 'the footer is no longer the bottom-most thing on screen',
-      );
-      expect(
-        tester.getRect(find.byType(AppFooter)).bottom,
-        tester.getRect(find.byType(NoInternetBar)).top,
-        reason: 'and nothing sits between the two',
+        bar.overlaps(footer),
+        isTrue,
+        reason: 'it covers the footer rather than displacing it',
       );
     });
   });

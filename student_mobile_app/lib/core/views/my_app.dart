@@ -88,11 +88,21 @@ class _AppView extends StatelessWidget {
           builder: (BuildContext context, Widget? child) => ClampedTextScale(
             child: ColoredBox(
               color: Theme.of(context).scaffoldBackgroundColor,
-              child: Column(
+              child: Stack(
+                fit: StackFit.expand,
                 children: <Widget>[
-                  Expanded(child: child ?? const SizedBox.shrink()),
-                  const AppFooter(),
-                  const NoInternetBar(),
+                  Column(
+                    children: <Widget>[
+                      Expanded(child: child ?? const SizedBox.shrink()),
+                      const AppFooter(),
+                    ],
+                  ),
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: NoInternetBar(),
+                  ),
                 ],
               ),
             ),

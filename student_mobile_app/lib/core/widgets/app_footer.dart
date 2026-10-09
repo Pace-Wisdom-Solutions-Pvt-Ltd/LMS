@@ -6,8 +6,10 @@ import 'package:lms/utils/app_exports.dart';
 /// [AppEnv.companyCopyright], on every route, opening
 /// [AppEnv.companyWebsite].
 ///
-/// Mounted once by [MyApp] below the router, so no screen opts in — the same
-/// arrangement as [NoInternetBar], which sits below this.
+/// Mounted once by [MyApp] below the router, so no screen opts in. It is the
+/// last thing in that column, so it always pays the home indicator's inset;
+/// [NoInternetBar] is overlaid on top of it rather than placed beneath, so a
+/// connection dropping moves neither this nor anything above it.
 ///
 /// **White on black, in both themes.** Not a theme oversight: it is a
 /// publisher's mark rather than part of the app's surface, and it reads the
