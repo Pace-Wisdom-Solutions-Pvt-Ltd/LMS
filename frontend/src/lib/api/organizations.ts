@@ -12,6 +12,7 @@ import {
   apiDelete,
 } from "./client";
 import config from "@/config";
+import type { ApiCertificate } from "./certificates";
 
 const ep = config.api.endpoints.organizations;
 
@@ -1833,8 +1834,10 @@ export interface ApiStudentDashboard {
     level: string;
     badges: unknown[];
   };
-  certificates: unknown[];
+  certificates: ApiCertificate[];
 }
+
+export * from './certificates';
 
 export async function getStudentDashboardApi(
   orgId: string,

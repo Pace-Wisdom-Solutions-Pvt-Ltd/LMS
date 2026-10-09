@@ -2,13 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronDown, Lock } from "lucide-react";
-import { getCourseRoadmapApi } from "@/lib/api/organizations";
-import type {
-  ApiEnrolledCourse,
-  ApiRoadmapModule,
-  ApiRoadmapNode,
+import { BookOpen, ChevronDown, Lock, Award, Download, Eye } from "lucide-react";
+import {
+  getCourseRoadmapApi,
+  type ApiEnrolledCourse,
+  type ApiRoadmapModule,
+  type ApiRoadmapNode,
 } from "@/lib/api/organizations";
+import {
+  getCourseCertificateApi,
+  type ApiCertificate,
+} from "@/lib/api/certificates";
 import { getStoredOrganizations } from "@/lib/auth";
 import { showToast } from "@/lib/toastApi";
 import BackButton from "@/components/ui/BackButton";
@@ -18,6 +22,7 @@ import { getMeta } from "./courseMeta";
 import CurriculumSection from "./CurriculumSection";
 import RoadmapChapters from "./RoadmapChapters";
 import CourseCompletionModal from "./CourseCompletionModal";
+import CertificateModal from "@/components/certificate/CertificateModal";
 
 type DoneMap = Record<number, boolean>;
 
@@ -72,6 +77,8 @@ export default function DetailedRoadmap({
   // Tracks nodes marked done in this session (before API re-fetch returns updated data)
   const [localDone, setLocalDone] = useState<DoneMap>({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [certificate, setCertificate] = useState<ApiCertificate | null>(null);
+  const [certModalOpen, setCertModalOpen] = useState(false);
   // Course id the completion modal has already been evaluated for, so it is
   // announced at most once per course even as `data`/`localDone` keep changing.
   const [completionAnnouncedFor, setCompletionAnnouncedFor] = useState<
@@ -92,12 +99,6 @@ export default function DetailedRoadmap({
       .finally(() => setLoading(false));
   }, [id, tick, orgId]);
 
-  if (!course) return null;
-
-  // Show the skeleton only on the first load (no data yet); background re-fetches
-  // triggered by `tick` keep the already-rendered roadmap in place.
-  if (loading && data.length === 0) return <RoadmapSkeleton />;
-
   // Compute from actual completable nodes so empty modules don't inflate/deflate %
   const allCompletable = data
     .flatMap((m) => m.nodes)
@@ -106,20 +107,43 @@ export default function DetailedRoadmap({
     (n) => getMeta(n).isDone || !!localDone[n.id],
   ).length;
 
+  const isCourseDone =
+    allCompletable.length > 0 && allDoneCount === allCompletable.length;
+
   // Surface the completion modal once per course, the first time every
   // completable node is done (server-confirmed or marked this session).
-  if (
-    allCompletable.length > 0 &&
-    allDoneCount === allCompletable.length &&
-    completionAnnouncedFor !== id
-  ) {
+  if (isCourseDone && completionAnnouncedFor !== id) {
     setCompletionAnnouncedFor(id);
     const seenKey = `course-completion-seen:${id}`;
-    if (!localStorage.getItem(seenKey)) {
-      localStorage.setItem(seenKey, "1");
+    try {
+      if (
+        typeof window !== "undefined" &&
+        window.localStorage?.getItem &&
+        !window.localStorage.getItem(seenKey)
+      ) {
+        window.localStorage.setItem(seenKey, "1");
+        setShowCompletionModal(true);
+      }
+    } catch {
       setShowCompletionModal(true);
     }
   }
+
+  // Load certificate when course is complete
+  useEffect(() => {
+    if (isCourseDone) {
+      getCourseCertificateApi(orgId, id)
+        .then((cert) => setCertificate(cert))
+        .catch(() => {});
+    }
+  }, [isCourseDone, orgId, id]);
+
+  if (!course) return null;
+
+  // Show the skeleton only on the first load (no data yet); background re-fetches
+  // triggered by `tick` keep the already-rendered roadmap in place.
+  if (loading && data.length === 0) return <RoadmapSkeleton />;
+
   const pct =
     allCompletable.length > 0
       ? String(Math.round((allDoneCount / allCompletable.length) * 100))
@@ -166,6 +190,52 @@ export default function DetailedRoadmap({
         </div>
       </div>
 
+      {/* ── Certificate Completion Banner ── */}
+      {isCourseDone && (
+        <div className="bg-gradient-to-r from-teal-500/10 via-emerald-500/10 to-teal-500/10 border border-teal-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-brand-teal text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-800">
+                  Course Completed!
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">
+                  100% Certified
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Your certificate of completion has been issued and is available to view and download.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setCertModalOpen(true)}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5 text-slate-500" />
+              View Certificate
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCertModalOpen(true);
+                setTimeout(() => window.print(), 300);
+              }}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-brand-teal text-xs font-semibold text-white hover:bg-brand-teal/90 shadow-sm transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Curriculum Phases */}
       <div className="space-y-8 pb-20">
         {data.map((m, idx) => (
@@ -193,6 +263,13 @@ export default function DetailedRoadmap({
         open={showCompletionModal}
         onClose={() => setShowCompletionModal(false)}
         courseTitle={course.title}
+        onViewCertificate={() => setCertModalOpen(true)}
+      />
+
+      <CertificateModal
+        open={certModalOpen}
+        onClose={() => setCertModalOpen(false)}
+        certificate={certificate}
       />
     </div>
   );

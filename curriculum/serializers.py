@@ -1215,10 +1215,11 @@ class RoadmapModuleSerializer(serializers.ModelSerializer):
 class RoadmapCourseSerializer(serializers.ModelSerializer):
     modules = RoadmapModuleSerializer(many=True, read_only=True)
     is_completed = serializers.SerializerMethodField()
+    certificate = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
-        fields = ['id', 'title', 'description', 'thumbnail', 'status', 'is_completed', 'modules']
+        fields = ['id', 'title', 'description', 'thumbnail', 'status', 'is_completed', 'certificate', 'modules']
 
     def to_representation(self, instance):
         request = self.context.get('request') if self.context else None
@@ -1364,17 +1365,45 @@ class RoadmapCourseSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return False
 
-        total_nodes = Node.objects.filter(module__course=obj, is_deleted=False).count()
-        if total_nodes == 0:
-            return False
+        try:
+            from gamification.utils import is_course_completed_for_student
+            completed, _ = is_course_completed_for_student(user, obj)
+            return completed
+        except Exception:
+            total_nodes = Node.objects.filter(module__course=obj, is_deleted=False).count()
+            if total_nodes == 0:
+                return False
+            completed_nodes = StudentNodeProgress.objects.filter(
+                student=user,
+                node__module__course=obj,
+                status='Completed',
+                node__is_deleted=False
+            ).values('node_id').distinct().count()
+            return completed_nodes >= total_nodes
 
-        completed_nodes = StudentNodeProgress.objects.filter(
-            student=user,
-            node__module__course=obj,
-            status='Completed',
-            node__is_deleted=False
-        ).values('node_id').distinct().count()
-        return completed_nodes >= total_nodes
+    def get_certificate(self, obj):
+        user = self.context.get('request').user if self.context and 'request' in self.context else None
+        if not user or not user.is_authenticated:
+            return None
+
+        try:
+            from gamification.models import Certificate
+            from gamification.serializers import CertificateSerializer
+            cert = Certificate.objects.filter(
+                student=user,
+                course=obj,
+                is_deleted=False
+            ).select_related('course', 'organization', 'template', 'student').first()
+
+            if not cert and self.get_is_completed(obj):
+                from gamification.utils import get_or_create_course_certificate
+                cert, _, _ = get_or_create_course_certificate(user, obj)
+
+            if cert:
+                return CertificateSerializer(cert, context=self.context).data
+        except Exception:
+            pass
+        return None
 
 
 class LearnerProgressSerializer(serializers.Serializer):

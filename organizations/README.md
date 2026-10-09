@@ -47,8 +47,8 @@ The `organizations` module implements logical tenant isolation for the LMS. It m
 
 ## 5. Management Commands
 - `python manage.py create_initial_organization`:
-  - Bootstraps the first tenant organization and its administrative user.
-  - Arguments: `--org-name`, `--org-slug`, `--admin-email`, `--password`.
+  - Bootstraps the first tenant organization, default batch, and Org Admin user with Django admin superuser access in a single unified command.
+  - Arguments: `--name` (or `--org-name`), `--slug` (or `--org-slug`), `--admin-email`, `--password` (or `--admin-password`), `--batch-name`, `--no-superuser`.
 
 ## 6. Business Logic & Invariants
 - Enrolling a student into a batch automatically links the student's `OrganizationMember` record and assigns them to the batch courses.

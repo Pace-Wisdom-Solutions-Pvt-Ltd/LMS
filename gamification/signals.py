@@ -8,6 +8,7 @@ from curriculum.models import StudentNodeProgress
 from gamification.models import GamificationProfile, NodeCompletionReward
 from organizations.models import OrganizationMember
 
+
 NODE_COMPLETION_POINTS = 10
 
 
@@ -50,7 +51,6 @@ def update_gamification_on_completion(sender, instance, created, **kwargs):
                 return
 
             profile, _ = GamificationProfile.objects.get_or_create(organization_member=member)
-            # Lock the profile row so concurrent completions do not lose updates
             profile = GamificationProfile.objects.select_for_update().get(pk=profile.pk)
             profile.total_points += NODE_COMPLETION_POINTS
 
@@ -59,3 +59,14 @@ def update_gamification_on_completion(sender, instance, created, **kwargs):
                 profile.current_level = level
 
             profile.save()
+
+        # Check if entire course is completed and issue certificate
+        try:
+            from gamification.utils import get_or_create_course_certificate
+            get_or_create_course_certificate(
+                user=member.user,
+                course=instance.node.module.course,
+                organization=instance.node.module.course.organization
+            )
+        except Exception:
+            pass

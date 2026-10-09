@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2026 Pace Wisdom Solutions Pvt. Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { LayoutDashboard, Users } from 'lucide-react'
 import Sidebar, { type SidebarNavItem } from '../Sidebar'
 
+let mockTenant: { logo_url: string | null; name: string } | null = null
+
 vi.mock('@/context/TenantContext', () => ({
-  useTenant: () => ({ tenant: null }),
+  useTenant: () => ({ tenant: mockTenant }),
 }))
 
 const NAV_ITEMS: SidebarNavItem[] = [
@@ -25,9 +27,23 @@ function renderSidebar(collapsed = false) {
 }
 
 describe('Sidebar', () => {
-  it('renders logo', () => {
+  beforeEach(() => {
+    mockTenant = null
+  })
+
+  it('renders default logo when tenant has no custom logo', () => {
     renderSidebar()
-    expect(screen.getByAltText('LMS')).toBeInTheDocument()
+    const img = screen.getByAltText('LMS')
+    expect(img).toBeInTheDocument()
+    expect(img.getAttribute('src')).toBeTruthy()
+  })
+
+  it('renders custom tenant logo when logo_url is provided', () => {
+    mockTenant = { logo_url: 'https://example.com/custom-logo.png', name: 'Custom Org' }
+    renderSidebar()
+    const img = screen.getByAltText('Custom Org')
+    expect(img).toBeInTheDocument()
+    expect(img.getAttribute('src')).toBe('https://example.com/custom-logo.png')
   })
 
   it('renders nav items as links', () => {

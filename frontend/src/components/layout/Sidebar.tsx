@@ -86,7 +86,8 @@ function NavGroup({ label, items, basePath, collapsed }: Readonly<{ label: strin
 
 export default function Sidebar({ basePath, navItems, collapsed, groups, settingsItems, settingsLabel, onToggle, hideLogo, topLabel }: Readonly<SidebarProps>) {
   const { tenant } = useTenant()
-  const logoSrc = tenant?.logo_url ?? (collapsed ? '/just-logo.png' : logo)
+  const defaultLogo = collapsed ? '/just-logo.png' : logo
+  const logoSrc = tenant?.logo_url ? tenant.logo_url : defaultLogo
 
   return (
     <aside
@@ -120,6 +121,11 @@ export default function Sidebar({ basePath, navItems, collapsed, groups, setting
           <img
             src={logoSrc}
             alt={tenant?.name ?? 'LMS'}
+            onError={(e) => {
+              if (e.currentTarget.src !== defaultLogo) {
+                e.currentTarget.src = defaultLogo
+              }
+            }}
             className={`object-contain transition-all duration-300 ${collapsed ? 'h-8 w-8' : 'h-10'}`}
           />
         </div>

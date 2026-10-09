@@ -9,7 +9,7 @@ import Sidebar, { type SidebarNavItem } from '@/components/layout/Sidebar'
 const NAV_ITEMS: SidebarNavItem[] = [
   { to: '/home',        label: 'Dashboard',              icon: Home },
   { to: '/my-courses',  label: 'My Courses',             icon: BookOpen },
-  { to: '/progress',    label: 'Progress',                icon: TrendingUp },
+  { to: '/progress',    label: 'Progress & Certificates', icon: TrendingUp },
   { to: '/engage',      label: 'Interaction & Support',  icon: MessageSquare, disabled: true },
   { to: '/profile',     label: 'Profile',                icon: User },
 ]

@@ -154,12 +154,21 @@ class StudentDashboardView(views.APIView):
         pts = profile.total_points if profile else 0
         lvl = profile.current_level if profile else "Beginner"
 
+        from gamification.models import Certificate
+        from gamification.serializers import CertificateSerializer
+
+        certs_qs = Certificate.objects.filter(
+            student=user,
+            organization_id=org_id,
+            is_deleted=False
+        ).select_related('course', 'organization', 'template', 'student').order_by('-issued_at')
+
         cards = {
             "enrolled_courses": len(progress_data),
             "upcoming_mandatory_due_dates": 0,
             "overall_completion_percentage": overall_completion_percentage,
             "pending_assessments": 0,
-            "certificates_earned": 0,
+            "certificates_earned": certs_qs.count(),
             "learning_hours_this_month": None,
         }
 
@@ -173,7 +182,7 @@ class StudentDashboardView(views.APIView):
                 "level": lvl,
                 "badges": [],
             },
-            "certificates": [],
+            "certificates": CertificateSerializer(certs_qs, many=True, context={'request': request}).data,
         })
 
     def _get_enrolled_course_ids(self, user, org_id, enrollment_qs):

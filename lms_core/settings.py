@@ -369,12 +369,15 @@ else:
     }
 
 # ── CACHING & REDIS ────────────────────────────────────────────────────────────
+DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": get_secret("REDIS_URL"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
         }
     }
 }

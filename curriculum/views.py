@@ -1820,6 +1820,17 @@ class TeacherTaskReviewAPIView(APIView):
                 node=submission.task.node,
                 defaults={'status': 'Completed'}
             )
+            try:
+                from gamification.utils import get_or_create_course_certificate
+                course = submission.task.node.module.course
+                student_user = submission.student.user if hasattr(submission.student, 'user') else submission.student
+                get_or_create_course_certificate(
+                    user=student_user,
+                    course=course,
+                    organization=course.organization
+                )
+            except Exception:
+                pass
 
         return Response(TaskSubmissionSerializer(submission, context={'request': request}).data)
 

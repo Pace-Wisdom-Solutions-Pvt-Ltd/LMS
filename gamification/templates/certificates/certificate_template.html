@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificate of Completion - {{ student_name }}</title>
+    <style>
+        @page {
+            size: a4 landscape;
+            background-color: #f6efe6;
+            margin: 13mm 14mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f6efe6;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #1a202c;
+        }
+        {% if not is_pdf %}
+        body {
+            padding: 12px 14px;
+            box-sizing: border-box;
+        }
+        {% endif %}
+
+        table.cert-outer-table {
+            width: 100%;
+            {% if is_pdf %}
+            height: 184mm;
+            {% else %}
+            height: 100%;
+            {% endif %}
+            border: 2px solid #a08058;
+            background-color: #f6efe6;
+            margin: 0 auto;
+            border-collapse: separate;
+        }
+
+        td.cert-outer-td {
+            padding: 5px;
+            vertical-align: middle;
+            border: none;
+        }
+
+        table.cert-inner-table {
+            border: 1px solid #c7b299;
+            width: 100%;
+            {% if is_pdf %}
+            height: 176mm;
+            {% else %}
+            height: 100%;
+            {% endif %}
+            margin: 0 auto;
+            border-collapse: separate;
+        }
+
+        td.cert-content-td {
+            vertical-align: middle;
+            text-align: center;
+            padding: 20px 36px 16px 36px;
+            border: none;
+        }
+
+        .logo-wrap {
+            margin: 0 auto;
+            text-align: center;
+        }
+        .org-logo {
+            height: 52px;
+            max-height: 52px;
+            max-width: 220px;
+            width: auto;
+            display: inline-block;
+        }
+        .org-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #2c5282;
+            text-transform: uppercase;
+            margin-top: 12px;
+            margin-bottom: 0;
+            text-align: center;
+        }
+
+        .cert-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1a6e9a;
+            text-transform: uppercase;
+            margin-top: 22px;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+        .student-name {
+            font-size: 46px;
+            font-weight: 700;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #2a2f36;
+            margin-top: 0;
+            margin-bottom: 8px;
+            line-height: 1.15;
+        }
+        .course-title {
+            font-size: 21px;
+            font-style: italic;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #374151;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        hr.cert-divider {
+            width: 170px;
+            height: 2px;
+            background-color: #a08058;
+            border: none;
+            margin: 0 auto 16px auto;
+        }
+
+        .cert-desc {
+            font-size: 14px;
+            color: #4b5563;
+            line-height: 1.6;
+            max-width: 620px;
+            width: 78%;
+            margin: 0 auto;
+        }
+
+        table.footer-table {
+            width: 80%;
+            margin: 50px auto 0 auto;
+            border-collapse: collapse;
+            border: none;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+        th.footer-col-left, td.footer-col-left {
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+            border: none;
+        }
+        th.footer-col-right, td.footer-col-right {
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+            border: none;
+        }
+        .meta-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+        .meta-val {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+        .meta-id {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #334155;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+    <table class="cert-outer-table">
+        <tr>
+            <td class="cert-outer-td">
+                <table class="cert-inner-table">
+                    <tr>
+                        <td class="cert-content-td">
+                            {% if logo_data_uri %}
+                            <div class="logo-wrap">
+                                <img src="{{ logo_data_uri }}" alt="{{ organization_name }}" height="52" class="org-logo" />
+                            </div>
+                            {% endif %}
+                            <div class="org-name">{{ organization_name }}</div>
+
+                            <div class="cert-title">CERTIFICATE OF COMPLETION</div>
+                            <div class="student-name">{{ student_name }}</div>
+                            <div class="course-title">{{ course_title }}</div>
+
+                            <hr class="cert-divider" />
+
+                            <div class="cert-desc">
+                                This certifies that the above-named participant has successfully completed the training program and demonstrated the requisite understanding of its contents.
+                            </div>
+
+                            <table class="footer-table">
+                                <caption class="sr-only">Certificate Metadata</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="footer-col-left meta-label">DATE</th>
+                                        <th scope="col" class="footer-col-right meta-label">CERTIFICATE ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="footer-col-left meta-val">{{ formatted_date }}</td>
+                                        <td class="footer-col-right meta-id">{{ certificate_id }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

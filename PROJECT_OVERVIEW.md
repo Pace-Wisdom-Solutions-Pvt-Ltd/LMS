@@ -176,24 +176,20 @@ Apply all database migrations to set up the tables:
 poetry run python manage.py migrate
 ```
 
-### Step 6: Create the Initial Organization & Admin
-Use the custom bootstrap command to initialize your first organization and tenant administrator:
+### Step 6: Create Initial Organization & Org Admin (Single Command)
+Use the unified bootstrap command to initialize your organization, default batch, and the Org Admin account with Django admin panel (`/admin/`) access in one command:
 ```bash
 poetry run python manage.py create_initial_organization \
-  --org-name "Acme Academy" \
-  --org-slug "acme-academy" \
+  --name "Acme Academy" \
+  --slug "acme-academy" \
+  --email "admin@acme.edu" \
   --admin-email "admin@acme.edu" \
-  --password "AdminPassword123"
+  --password "AdminPassword123" \
+  --batch-name "Batch 1"
 ```
+*(This automatically creates the user as an Org Admin and grants superuser/staff privileges so they can log into both the LMS and the Django Admin panel at `/admin/`).*
 
-### Step 7: (Optional) Create a Platform Superuser
-If you need access to the Django admin panel (`/admin/`):
-```bash
-poetry run python manage.py createsuperuser
-```
-Follow the interactive prompts to enter an email and password.
-
-### Step 8: Start the Development Server
+### Step 7: Start the Development Server
 Launch the Django development server:
 ```bash
 poetry run python manage.py runserver 8000
@@ -201,7 +197,7 @@ poetry run python manage.py runserver 8000
 
 Your API is now live at `http://localhost:8000/`!
 
-### Step 9: Run the Frontend
+### Step 8: Run the Frontend
 The frontend is a separate app under [`frontend/`](frontend/):
 ```bash
 cd frontend

@@ -129,29 +129,27 @@ cd LMS
 docker compose up --build
 ```
 
-Then create an admin user and the first organisation:
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:5173 |
+| API docs (Swagger) | http://localhost:8010/api/docs/ |
+| ReDoc | http://localhost:8010/api/redoc/ |
+| Django admin | http://localhost:8010/admin/ |
+
+Source is bind-mounted, so edits on your machine reload in the containers — no
+rebuild unless dependencies change. Database migrations run automatically on
+every backend start.
+
+Create the initial organization, default batch, and Org Admin (with superuser/admin panel access) in a single command:
 
 ```bash
-docker compose exec -e DJANGO_SUPERUSER_PASSWORD='SecurePassword123' backend \
-  python manage.py createsuperuser --noinput \
-  --email admin@acme.edu --first_name Acme --last_name Admin
-
 docker compose exec backend python manage.py create_initial_organization \
   --name "Acme Academy" --slug "acme-academy" \
-  --email "admin@acme.edu" --admin-email "admin@acme.edu" --batch-name "Batch 1"
+  --admin-email "admin@acme.edu" --password "SecurePassword123" \
+  --batch-name "Batch 1"
 ```
 
-> [!NOTE]
-> Run the two commands in this order: `create_initial_organization` links an **existing** user as Institute Admin; it does not create one.
-
-| Service | URL |
-|---|---|
-| 🖥️ Web app | http://localhost:5173 |
-| 📘 API docs (Swagger) | http://localhost:8010/api/docs/ |
-| 📕 ReDoc | http://localhost:8010/api/redoc/ |
-| 🛠️ Django admin | http://localhost:8010/admin/ |
-
-Source code is bind-mounted, so your edits reload inside the containers without a rebuild. Migrations run automatically on every backend start.
+*(This automatically creates the user as an Org Admin and grants superuser/staff privileges so they can access both the LMS and `/admin/`).*
 
 <details>
 <summary><b>Ports and common Docker commands</b></summary>
@@ -287,130 +285,25 @@ All settings are read from environment variables (or a `.env` file). Copy [`.env
 
 </details>
 
----
+### 3. Set up the database, organisation, and admin
+```bash
+poetry run python manage.py migrate
+poetry run python manage.py create_initial_organization \
+  --name "Acme Academy" \
+  --slug "acme-academy" \
+  --admin-email "admin@acme.edu" \
+  --password "AdminPassword123" \
+  --batch-name "Batch 1"
+```
+*(This creates the organization, initial batch, and creates the Org Admin with Django admin panel (`/admin/`) superuser/staff access automatically).*
 
-## 🧩 Features
+### 4. Run the backend
 
-**Legend:** 🆓 Community · 💎 Enterprise · 🟡 Partially built · 🚧 Planned
-
-<details>
-<summary><b>🔐 Login, authentication &amp; roles</b></summary>
-
-<br/>
-
-| Feature | What it does | Edition |
-|---|---|---|
-| Email & password login | Sign in with a registered email and password, with clear errors for invalid credentials. | 🆓 |
-| Forgot / reset password | Request a reset link by email and set a new password through a time-limited, single-use link. | 🆓 |
-| Accept invite | New users get an email invite (valid for 7 days) and set a password to activate their account. | 🆓 |
-| Change password | Change the password while signed in. | 🆓 |
-| Session & access protection 🟡 | Every page requires sign-in and the right role. JWT access and refresh tokens. | 🆓 |
-| Sign out | End the session from anywhere; the refresh token is revoked. | 🆓 |
-| Multi-role selection & switching | Users with several roles pick a portal at login and switch without signing out. | 🆓 |
-| Sign in with Google / Microsoft | One-click login with a linked Google or Microsoft (Azure) account. | 💎 |
-
-</details>
-
-<details>
-<summary><b>🏢 Institute Admin portal</b></summary>
-
-<br/>
-
-| Feature | What it does | Edition |
-|---|---|---|
-| Organisation dashboard | At-a-glance counts of users, trainers, students, batches and courses. | 🆓 |
-| Manage trainers | Add, edit, search, sort and bulk-upload (CSV / XLSX) trainers. New trainers get an invite email. | 🆓 |
-| Manage students | Enrol students individually or in bulk, and view them all or by batch. | 🆓 |
-| Account status | Activate, deactivate, delete or reinvite trainers and students. | 🆓 |
-| Batches | Create, edit, search and archive cohorts with start/end dates and assigned courses. | 🆓 |
-| Course progress tracker | Drill down from batches → courses → students → an individual learning roadmap. | 🆓 |
-| Organisation-level batch with reporting manager | Organisation-wide cohorts (e.g. all employees) with a nominated manager. | 💎 |
-| Assessment calendar | Month view of upcoming assessment deadlines. | 💎 |
-| Organisation audit log | Searchable, exportable history of actions in the organisation. | 💎 |
-| Reschedule request management 🚧 | Approve or reject session reschedule requests. | 💎 |
-
-</details>
-
-<details>
-<summary><b>🧱 Course builder</b></summary>
-
-<br/>
-
-| Feature | What it does | Edition |
-|---|---|---|
-| Course listing | Search, filter by status, and archive/unarchive or delete courses. | 🆓 |
-| Create course | Name, status, description, thumbnail and assigned trainers. | 🆓 |
-| Levels & chapters | Organise a course into levels, and each level into chapters that group related steps. | 🆓 |
-| Learning resources | Attach videos, documents, PDFs or links, with focus areas and a quick outline. | 🆓 |
-| Tasks | Assignments with allowed submission formats (link, text, PDF, screenshot, code, file). | 🆓 |
-| Quizzes | Scored multiple-choice quizzes with a pass mark (default 70%) and an optional timer. | 🆓 |
-| Prerequisites & sequential unlocking | Steps unlock in order; a step stays locked until its prerequisite is done. | 🆓 |
-| Reorder, edit & delete curriculum 🟡 | Change the order of chapters and steps, and modify or remove them. | 🆓 |
-| Coding question sets | Problems in Python, JavaScript, Java, C/C++, C# and SQL, with AI-generated test cases and starter code. | 💎 |
-| Course import / export (Excel) | Build a whole course from a spreadsheet, or export its structure. | 💎 |
-| Quiz bulk upload | Import quiz questions from CSV / XLSX with a downloadable error report. | 💎 |
-| Must-pass quiz rules | Pass %, timer and retake-or-continue behaviour on failure. | 💎 |
-| Drip content release 🟡 | Unlock a step N days after the batch starts. | 💎 |
-
-</details>
-
-<details>
-<summary><b>🧑‍🏫 Trainer portal</b></summary>
-
-<br/>
-
-| Feature | What it does | Edition |
-|---|---|---|
-| Trainer dashboard | Students, batches, courses, pending evaluations, average completion and recent submissions. | 🆓 |
-| Assigned courses & curriculum | Every course the trainer delivers, with the course builder for those courses. | 🆓 |
-| Evaluate submissions | A searchable queue of work to grade, filtered by status. | 🆓 |
-| Approve / reject with score & feedback | Score from 0 to 100 plus written feedback on each submission. | 🆓 |
-| Learner progress overview | Every assigned learner with completion %, search, sort and Excel export. | 🆓 |
-| Learner progress drill-down | One student's roadmap node by node, with inline task review. | 💎 |
-| Progress reminders & quiz reports | Email learners who fall behind; attempts and best/latest score per learner. | 💎 |
-| Session calendar & performance reports 🟡 | Upcoming deadlines and exportable metrics for the trainer's courses. | 💎 |
-| Announcements & discussion board 🚧 | Announcement feed and Q&A threads with learners. | 💎 |
-
-</details>
-
-<details>
-<summary><b>🎓 Student portal &amp; mobile app</b></summary>
-
-<br/>
-
-| Feature | What it does | Edition |
-|---|---|---|
-| Student dashboard | Live cards for enrolled courses, completion %, pending work and more. | 🆓 |
-| Course roadmap player | Step through videos, documents, tasks and quizzes in order. | 🆓 |
-| Batch-window access | Courses open only while the student's batch is running. | 🆓 |
-| Progress tracking | Overall completion ring and per-course progress bars. | 🆓 |
-| Points & levels | 10 points per completed step: Novice (100), Intermediate (250), Expert (500). | 🆓 |
-| Mobile app | Learner app for Android and iOS with per-organisation theming. | 🆓 |
-| Assessments & certificates | Timed MCQs, task submissions, a coding editor, and downloadable certificates. | 💎 |
-| Leaderboard & badges 🟡 | Top learners by points and achievement badges. | 💎 |
-| My schedule | Calendar of upcoming assessment deadlines. | 💎 |
-
-</details>
-
-<details>
-<summary><b>💎 Enterprise-only modules</b></summary>
-
-<br/>
-
-| Module | What it includes |
-|---|---|
-| Super Admin console | Platform KPIs, every organisation and user, act-as-admin support, platform audit trail. |
-| Assessments & certificates | MCQ, task and coding assessments, results and resubmission, auto-issued certificates with public verification and a template designer. |
-| Interview module | No-login coding interviews with single-use candidate links, timed editor, tab-switch monitoring and results. |
-| Engagement | In-app notifications, course deadline reminders, organisation branding and theme colours. |
-
-</details>
-
----
-
-## 📘 API
-
-The backend exposes a documented REST API. With the server running:
+```bash
+redis-server                                          # or: docker run -d -p 6379:6379 redis
+poetry run python manage.py runserver
+poetry run celery -A lms_core worker -l info          # background tasks
+```
 
 | URL | What |
 |---|---|

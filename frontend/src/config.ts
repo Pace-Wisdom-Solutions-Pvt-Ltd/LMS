@@ -28,6 +28,7 @@ export const config = {
         list: '/users/',
         detail: (id: string) => `/users/${id}/`,
         reinvite: (identifier: string) => `/users/${identifier}/reinvite/`,
+        certificates: (id: string) => `/users/${id}/certificates/`,
       },
 
       /*  Roles  */
@@ -160,6 +161,13 @@ export const config = {
         /* -- Student Specific -- */
         myCourses: (orgId: string) => `/organizations/${orgId}/my-courses/`,
         myProgress: (orgId: string) => `/organizations/${orgId}/my-progress/`,
+
+        /* -- Certificates -- */
+        certificates: {
+          list: (orgId: string) => `/organizations/${orgId}/certificates/`,
+          download: (orgId: string, certId: string | number) => `/organizations/${orgId}/certificates/${certId}/download/`,
+          courseCertificate: (orgId: string, courseId: string | number) => `/organizations/${orgId}/courses/${courseId}/certificate/`,
+        },
       },
 
       /* -- Tenant (public, no auth) -- */
