@@ -8,13 +8,17 @@ from django.db import models
 from rest_framework import views, response, status, permissions
 from analytics.models import DailyOrgMetrics, DailyBatchMetrics
 from organizations.models import Batch, BatchStudent, Organization, OrganizationMember
+from organizations.permissions import IsOrgAdmin
 from gamification.models import GamificationProfile
 from curriculum.models import StudentNodeProgress, Course, Node
 from drf_spectacular.utils import extend_schema
 
 
 class AdminDashboardView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Org-level metrics are admin-only. IsOrgAdmin reads the organization from
+    # the ``org_id`` URL kwarg, so a member of another organization (or of none)
+    # cannot read this payload now that the route is actually reachable.
+    permission_classes = [permissions.IsAuthenticated, IsOrgAdmin]
 
     @extend_schema(summary="Admin Dashboard Analytics Overview")
     def get(self, request, org_id):
